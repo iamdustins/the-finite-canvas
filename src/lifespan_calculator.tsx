@@ -4,9 +4,8 @@ import {
   Thermometer, Hourglass, PhoneCall, AlertTriangle,
   RouteOff, BookOpen, Smile, Clock, HeartPulse,
   Users, Smartphone, Activity, Calendar, RotateCcw,
-  Bookmark, Check, Info, Sparkles, TrendingUp,
-  Layers, Grid, BarChart2, PieChart as PieChartIcon,
-  Copy, Download, Upload, Scale, Sun
+  Bookmark, Check, Sparkles, Layers, Grid,
+  PieChart as PieChartIcon, Copy, Sun, Compass
 } from 'lucide-react';
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -32,51 +31,53 @@ interface LifespanState {
   customLifespan: number;
   healthLifestyleScore: number; // -10 to +10 years modifier based on habits/genetics
 
-  // 01. The Inevitable (Foundations & Phases)
+  // I. The Inevitable (9 Foundations & Phases)
   sleepHrsPerDay: number;
-  routineHrsPerDay: number; // Hygiene, cooking, eating, basic house upkeep
+  routineHrsPerDay: number;
   workHrsPerWeek: number;
   workWeeksPerYear: number;
-  workDaysPerWeek: number;
-  retirementAge: number;
-  encoreWorkHrsPerWeek: number; // Optional part-time/passion work in early retirement
+  encoreWorkHrsPerWeek: number;
+  caregivingHrsPerWeek: number;
+  caregivingYearsRemaining: number;
   schoolHrsPerDay: number;
   schoolYearsRemaining: number;
 
-  // 02. Life Phases & Caregiving
-  caregivingHrsPerWeek: number; // Parenting, child-rearing, or eldercare
-  caregivingYearsRemaining: number;
-
-  // 03. The Friction (Unseen Sinks)
+  // II. The Friction (9 Unseen Taxes & Schedule Constraints)
   commuteHrsPerWorkday: number;
-  remoteWorkPercent: number; // % of workdays worked from home (0-100)
+  workDaysPerWeek: number;
+  remoteWorkPercent: number;
+  passiveScreenHrsPerDay: number;
   sickDaysPerYear: number;
-  waitHrsPerWeek: number;
   adminHrsPerWeek: number;
-  passiveScreenHrsPerDay: number; // Doomscrolling / unintentional screen drift
+  waitHrsPerWeek: number;
   disasterHrsPerYear: number;
   detourYearsRemaining: number;
 
-  // 04. The Choice (Intentional Living)
+  // III. The Choice (3 Pillars of Deliberate Living)
   exerciseHrsPerWeek: number;
   growthHrsPerWeek: number;
   funHrsPerWeek: number;
+
+  // Horizon Anchor
+  retirementAge: number;
 }
 
-// US BLS American Time Use Survey (ATUS) & OECD empirical adult baselines
 const ATUS_BENCHMARKS: Record<string, { label: string; value: string; note: string }> = {
-  sleep: { label: 'ATUS Avg: 8.6h/d', value: '8.6', note: 'Includes sleep, naps & sleeplessness in bed' },
-  routine: { label: 'ATUS Avg: 2.3h/d', value: '2.3', note: 'Grooming (0.8h), eating/drinking (1.1h), food prep (0.4h)' },
-  work: { label: 'ATUS Avg: 38.5h/wk', value: '38.5', note: 'Full-time employed civilian average' },
-  commute: { label: 'US Census: 0.9h/d', value: '0.9', note: '27.6 min each way (~55 min round-trip)' },
-  caregiving: { label: 'ATUS Parents: 12h/wk', value: '12', note: 'Primary + secondary childcare/eldercare in active households' },
-  sick: { label: 'CDC Avg: 4.5d/yr', value: '5', note: 'Acute illness + mental health days (excluding late-life morbidity)' },
-  wait: { label: 'Avg: 1.5h/wk', value: '1.5', note: 'Transit delays, queues, waiting rooms, hold times' },
-  admin: { label: 'ATUS Avg: 3.5h/wk', value: '3.5', note: 'Household management, bills, consumer purchases, errands' },
-  screen: { label: 'Avg Adult: 2.8h/d', value: '2.8', note: 'Algorithmic social feeds & passive background TV' },
-  exercise: { label: 'WHO Target: 3.5h/wk', value: '3.5', note: '150–300 min/wk moderate-to-vigorous physical activity' },
-  growth: { label: 'ATUS Avg: 2.1h/wk', value: '2.1', note: 'Personal reading, skill building, deliberate practice' },
-  fun: { label: 'ATUS Avg: 14h/wk', value: '14', note: 'Active socializing, hobbies, arts, intentional recreation' },
+  sleep: { label: 'ATUS // 8.6H', value: '8.6', note: 'US BLS average including sleep, naps & bedtime rest' },
+  routine: { label: 'ATUS // 2.3H', value: '2.3', note: 'Grooming (0.8h), eating (1.1h), food preparation (0.4h)' },
+  work: { label: 'ATUS // 38.5H', value: '38.5', note: 'Full-time civilian employed weekly average' },
+  workWeeks: { label: 'US AVG // 49W', value: '49', note: 'Standard 52 weeks minus ~15 days PTO & federal holidays' },
+  workDays: { label: 'STD // 5.0D', value: '5', note: 'Standard 5-day full-time workweek' },
+  commute: { label: 'CENSUS // 0.9H', value: '0.9', note: 'US Census 27.6 min each way (~55 min round-trip)' },
+  caregiving: { label: 'PARENTS // 12H', value: '12', note: 'Primary + secondary childcare/eldercare in active households' },
+  sick: { label: 'CDC // 5.0D', value: '5', note: 'Acute illness + mental health days (excluding late-life morbidity)' },
+  wait: { label: 'AVG // 1.5H', value: '1.5', note: 'Transit delays, queues, waiting rooms, hold times' },
+  admin: { label: 'ATUS // 3.5H', value: '3.5', note: 'Household management, bills, consumer purchases, errands' },
+  screen: { label: 'AVG // 2.8H', value: '2.8', note: 'Algorithmic social feeds & passive background television' },
+  disaster: { label: 'AVG // 20H', value: '20', note: 'Unplanned vehicle, home, medical, or digital emergencies' },
+  exercise: { label: 'WHO // 3.5H', value: '3.5', note: '150–300 min/wk moderate-to-vigorous physical training' },
+  growth: { label: 'ATUS // 2.0H', value: '2', note: 'Personal reading, skill acquisition, deliberate craft' },
+  fun: { label: 'ATUS // 14.0H', value: '14', note: 'Active socializing, hobbies, arts, intentional recreation' },
 };
 
 const DEFAULT_STATE: LifespanState = {
@@ -113,9 +114,10 @@ const DEFAULT_STATE: LifespanState = {
   funHrsPerWeek: 10.0,
 };
 
-const PRESETS: Record<string, { name: string; subtitle: string; state: Partial<LifespanState> }> = {
+const PRESETS: Record<string, { name: string; code: string; subtitle: string; state: Partial<LifespanState> }> = {
   atus: {
-    name: 'US Statistical Average',
+    name: 'US Statistical Mean',
+    code: 'I',
     subtitle: 'BLS American Time Use Survey & SSA baseline',
     state: {
       sleepHrsPerDay: 8.5,
@@ -137,7 +139,8 @@ const PRESETS: Record<string, { name: string; subtitle: string; state: Partial<L
     },
   },
   hustle: {
-    name: 'High-Burn Corporate',
+    name: 'High-Burn Attrition',
+    code: 'II',
     subtitle: '60h/wk onsite, heavy commute, compressed sleep',
     state: {
       sleepHrsPerDay: 6.5,
@@ -158,8 +161,9 @@ const PRESETS: Record<string, { name: string; subtitle: string; state: Partial<L
     },
   },
   fire: {
-    name: 'Remote + Early Retirement',
-    subtitle: 'Remote work, low friction, retire at 50',
+    name: 'Sovereign / Early Exit',
+    code: 'III',
+    subtitle: 'Remote autonomy, low friction, retire at 50',
     state: {
       sleepHrsPerDay: 8.0,
       routineHrsPerDay: 2.0,
@@ -180,8 +184,9 @@ const PRESETS: Record<string, { name: string; subtitle: string; state: Partial<L
     },
   },
   parent: {
-    name: 'Active Family & Career',
-    subtitle: 'Full-time career + 18 yrs active parenting',
+    name: 'Family & Lineage',
+    code: 'IV',
+    subtitle: 'Full-time career + 18 yrs dedicated parenting',
     state: {
       sleepHrsPerDay: 7.5,
       routineHrsPerDay: 2.5,
@@ -201,17 +206,10 @@ const PRESETS: Record<string, { name: string; subtitle: string; state: Partial<L
   },
 };
 
-/**
- * Computes conditional expected total lifespan based on SSA/CDC actuarial survival tables
- * and evidence-based lifestyle adjustments (sleep U-curve, physical activity, chronic overwork).
- */
 function calculateActuarialProjection(state: LifespanState) {
-  // Base expected lifespan at birth (US SSA / OECD developed baseline)
   const baseAtBirth = state.sex === 'female' ? 81.2 : state.sex === 'male' ? 76.1 : 78.6;
-
-  // Conditional survival bonus: having survived to `currentAge` eliminates early-life mortality risk.
-  // Approximated via Gompertz-Makeham conditional expectancy curve matching SSA Period Life Tables.
   const age = state.currentAge;
+
   let survivalBonus = 0;
   if (age <= 20) {
     survivalBonus = age * 0.04;
@@ -223,8 +221,6 @@ function calculateActuarialProjection(state: LifespanState) {
     survivalBonus = 7.25 + (age - 75) * 0.38;
   }
 
-  // Empirical lifestyle longevity modifiers (capped reasonably)
-  // 1. Exercise (Brigham / Harvard studies: 3.5-7h/wk adds ~2.5-4.2 yrs vs sedentary)
   const exerciseBonus =
     state.exerciseHrsPerWeek >= 5
       ? 3.2
@@ -234,7 +230,6 @@ function calculateActuarialProjection(state: LifespanState) {
       ? -1.5
       : 0;
 
-  // 2. Sleep U-curve (optimal 7.0 - 8.5 hrs; chronic <6h or >9.5h correlates with reduced healthspan)
   const sleepBonus =
     state.sleepHrsPerDay >= 7 && state.sleepHrsPerDay <= 8.5
       ? 1.0
@@ -244,7 +239,6 @@ function calculateActuarialProjection(state: LifespanState) {
       ? -1.0
       : -0.5;
 
-  // 3. Chronic overwork penalty (WHO/ILO study: >=55 hrs/wk increases cardiovascular risk)
   const workStressPenalty =
     state.workHrsPerWeek >= 60 ? -2.0 : state.workHrsPerWeek >= 55 ? -1.0 : 0;
 
@@ -267,7 +261,6 @@ function calculateActuarialProjection(state: LifespanState) {
     ? calculatedLifespan
     : Math.max(state.currentAge + 1, state.customLifespan);
 
-  // WHO HALE (Healthy Life Expectancy): typically ~87-89% of total lifespan, modified by exercise & sleep
   const lateLifeMorbidityRatio =
     0.115 -
     (state.exerciseHrsPerWeek >= 3.5 ? 0.02 : 0) +
@@ -288,10 +281,58 @@ function calculateActuarialProjection(state: LifespanState) {
 }
 
 // ============================================================================
-// REUSABLE SLIDER CONTROL (Defined outside parent to preserve drag focus!)
+// ARCHITECTURAL HELPERS & ANGULAR INSTRUMENT COMPONENTS
 // ============================================================================
 
+const formatNum = (num: number) => new Intl.NumberFormat('en-US').format(Math.round(num));
+
+/** Corner Reticles for Angular Monolith Framing */
+const CornerReticles: React.FC<{ color?: string }> = ({ color = 'border-zinc-600/70' }) => (
+  <>
+    <span className={`pointer-events-none absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 ${color}`} />
+    <span className={`pointer-events-none absolute top-0 right-0 w-2.5 h-2.5 border-t-2 border-r-2 ${color}`} />
+    <span className={`pointer-events-none absolute bottom-0 left-0 w-2.5 h-2.5 border-b-2 border-l-2 ${color}`} />
+    <span className={`pointer-events-none absolute bottom-0 right-0 w-2.5 h-2.5 border-b-2 border-r-2 ${color}`} />
+  </>
+);
+
+/** Centered Symmetrical Section Header */
+const AxialSectionHeader: React.FC<{
+  roman: string;
+  title: string;
+  subtitle: string;
+  accentColor: string;
+  totalHours: number;
+  wakingPct: string;
+}> = ({ roman, title, subtitle, accentColor, totalHours, wakingPct }) => (
+  <div className="relative mb-8">
+    {/* Symmetrical Horizontal Axis */}
+    <div className="flex items-center justify-center gap-4 mb-3">
+      <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-zinc-700" />
+      <div className="flex items-center gap-2.5 px-4 py-1 bg-[#0b0c10] border border-zinc-800 text-[11px] font-mono uppercase tracking-[0.25em] text-zinc-400">
+        <span className="w-2 h-2 rotate-45 inline-block" style={{ backgroundColor: accentColor }} />
+        <span>SECTION {roman}</span>
+        <span className="text-zinc-600">//</span>
+        <span className="text-zinc-200 font-bold">{formatNum(totalHours)} HRS</span>
+        <span className="text-zinc-500">({wakingPct}% WAKING)</span>
+      </div>
+      <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-zinc-800 to-zinc-700" />
+    </div>
+
+    <div className="text-center max-w-2xl mx-auto">
+      <h2
+        className="text-2xl md:text-3xl font-bold uppercase tracking-[0.12em] text-white"
+        style={{ fontFamily: "'Cinzel', 'Space Grotesk', serif" }}
+      >
+        {title}
+      </h2>
+      <p className="text-xs md:text-sm text-zinc-400 mt-1.5 tracking-wide">{subtitle}</p>
+    </div>
+  </div>
+);
+
 interface SliderControlProps {
+  indexCode: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   value: number;
@@ -305,12 +346,11 @@ interface SliderControlProps {
   accentHex: string;
   benchmark?: { label: string; value: string; note: string };
   subtitle?: string;
-  showHoursSummary?: boolean;
+  secondaryNote?: string;
 }
 
-const formatNum = (num: number) => new Intl.NumberFormat('en-US').format(Math.round(num));
-
 const SliderControl: React.FC<SliderControlProps> = React.memo(({
+  indexCode,
   label,
   icon: Icon,
   value,
@@ -324,60 +364,98 @@ const SliderControl: React.FC<SliderControlProps> = React.memo(({
   accentHex,
   benchmark,
   subtitle,
-  showHoursSummary = true,
+  secondaryNote,
 }) => {
+  const fillPct = Math.max(0, Math.min(100, ((value - min) / (max - min || 1)) * 100));
+
   return (
-    <div className="bg-gray-900/90 border border-gray-800/90 rounded-xl p-4 flex flex-col gap-2.5 transition-all hover:border-gray-700 relative overflow-hidden group">
-      <div className="flex justify-between items-start gap-2 relative z-10">
-        <div className="flex items-center gap-2 min-w-0">
-          <Icon className={`w-4 h-4 flex-shrink-0 ${colorClass}`} />
-          <div className="truncate">
-            <span className="font-semibold text-sm text-gray-200">{label}</span>
+    <div className="relative bg-[#0a0b0f] border border-zinc-800/90 p-5 flex flex-col justify-between gap-4 transition-all duration-200 hover:border-zinc-600 hover:bg-[#0d0e14] group">
+      <CornerReticles color="border-zinc-700/60 group-hover:border-zinc-400 transition-colors" />
+
+      {/* Top Accent Hairline */}
+      <div
+        className="absolute top-0 left-6 right-6 h-[1px] opacity-50 group-hover:opacity-100 transition-opacity"
+        style={{ backgroundColor: accentHex }}
+      />
+
+      {/* Row 1: Symmetrical Header (Icon + Title Left | Tabular Value Right) */}
+      <div className="flex justify-between items-start gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div
+            className="w-8 h-8 flex-shrink-0 bg-zinc-900/90 border border-zinc-800 flex items-center justify-center mt-0.5"
+            style={{ borderColor: `${accentHex}44` }}
+          >
+            <Icon className={`w-4 h-4 ${colorClass}`} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-mono text-zinc-600 tracking-widest">{indexCode}</span>
+              <span className="font-semibold text-sm text-zinc-100 tracking-wide truncate">{label}</span>
+            </div>
             {subtitle && (
-              <p className="text-[11px] text-gray-500 truncate">{subtitle}</p>
+              <p className="text-[11px] text-zinc-500 truncate mt-0.5">{subtitle}</p>
             )}
           </div>
         </div>
-        <div className="text-right flex-shrink-0">
-          <span className="text-lg font-bold text-white font-mono">{value}</span>
-          <span className="text-xs text-gray-400 ml-1">{unit}</span>
+
+        <div className="text-right flex-shrink-0 bg-zinc-950/90 border border-zinc-800/90 px-2.5 py-1">
+          <span className="text-lg font-extrabold text-white font-mono tracking-tight">{value}</span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-400 ml-1 font-mono">{unit}</span>
         </div>
       </div>
 
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10"
-        style={{ accentColor: accentHex }}
-      />
+      {/* Row 2: Precision Angular Track with Live Progress Fill */}
+      <div className="relative py-1 flex items-center">
+        <div className="w-full h-1.5 bg-zinc-900 border border-zinc-800 overflow-hidden pointer-events-none">
+          <div
+            className="h-full transition-all duration-75"
+            style={{
+              width: `${fillPct}%`,
+              background: `linear-gradient(90deg, ${accentHex}55 0%, ${accentHex} 100%)`,
+            }}
+          />
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className="angular-slider absolute inset-0 w-full h-full opacity-100 cursor-pointer"
+          style={{ color: accentHex }}
+        />
+      </div>
 
-      <div className="flex justify-between items-center text-[11px] text-gray-500 font-mono relative z-10 pt-0.5">
+      {/* Row 3: Symmetrical Footer (Benchmark Left | Lifetime Cost Right) */}
+      <div className="flex justify-between items-center text-[11px] font-mono pt-1 border-t border-zinc-900">
         {benchmark ? (
           <button
             type="button"
             onClick={() => onChange(parseFloat(benchmark.value))}
-            title={`${benchmark.note} (Click to apply)`}
-            className="text-gray-400 hover:text-white bg-gray-800/80 hover:bg-gray-700/80 px-1.5 py-0.5 rounded transition-colors flex items-center gap-1"
+            title={`${benchmark.note} (Click to calibrate)`}
+            className="text-zinc-400 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-600 px-2 py-0.5 transition-all uppercase tracking-wider text-[10px]"
           >
-            <span>{benchmark.label}</span>
+            [{benchmark.label}]
           </button>
         ) : (
-          <span>
-            {min}–{max} {unit}
+          <span className="text-zinc-600 uppercase tracking-wider text-[10px]">
+            RANGE // {min}–{max} {unit}
           </span>
         )}
-        {showHoursSummary && (
-          <span>
-            <strong className="text-gray-300">{formatNum(hours)}</strong> hrs{' '}
-            <span className="text-gray-600">
-              ({(hours / HOURS_PER_YEAR).toFixed(1)}y)
+
+        <div className="text-right">
+          {secondaryNote ? (
+            <span className="text-zinc-400">{secondaryNote}</span>
+          ) : (
+            <span>
+              <strong className="text-zinc-200">{formatNum(hours)}</strong>{' '}
+              <span className="text-zinc-500">HRS</span>{' '}
+              <span className="text-zinc-600">//</span>{' '}
+              <span className="text-zinc-400">{(hours / HOURS_PER_YEAR).toFixed(1)}Y</span>
             </span>
-          </span>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -430,7 +508,6 @@ export default function LifespanApp() {
     setActivePreset(null);
     setState((prev) => {
       const next = { ...prev, [field]: value };
-      // Keep age/retirement/lifespan logically consistent
       if (field === 'currentAge') {
         const ageVal = value as number;
         if (next.customLifespan <= ageVal) next.customLifespan = ageVal + 5;
@@ -450,7 +527,7 @@ export default function LifespanApp() {
   };
 
   // ============================================================================
-  // RIGOROUS YEAR-BY-YEAR SIMULATION ENGINE (NO DOUBLE-COUNTING)
+  // RIGOROUS YEAR-BY-YEAR SIMULATION ENGINE
   // ============================================================================
 
   const simulateLifecycle = useCallback((s: LifespanState) => {
@@ -462,7 +539,6 @@ export default function LifespanApp() {
     const totalLifespanHours = lifespan * HOURS_PER_YEAR;
     const livedPercentage = totalLifespanHours > 0 ? (hoursLived / totalLifespanHours) * 100 : 100;
 
-    // Accumulators across all remaining years
     const totals = {
       sleep: 0,
       routine: 0,
@@ -506,12 +582,10 @@ export default function LifespanApp() {
       const isCaregivingYear = y < s.caregivingYearsRemaining;
       const isHealthyYear = age < actuarial.healthspanAge;
 
-      // 1. Base biological & maintenance needs (apply every day of the year)
       const yrSleep = s.sleepHrsPerDay * DAYS_PER_YEAR;
       const yrRoutine = s.routineHrsPerDay * DAYS_PER_YEAR;
       const wakingNonRoutineHrsPerDay = Math.max(0, HOURS_PER_DAY - s.sleepHrsPerDay - s.routineHrsPerDay);
 
-      // 2. Detours (e.g. major life crisis/addiction) only consume *waking non-routine* hours, never double-counting sleep!
       let detourFractionThisYear = 0;
       if (remainingDetourYears > 0) {
         detourFractionThisYear = Math.min(1, remainingDetourYears);
@@ -520,36 +594,27 @@ export default function LifespanApp() {
       const yrDetour = detourFractionThisYear * wakingNonRoutineHrsPerDay * DAYS_PER_YEAR;
       const activeYearScale = 1 - detourFractionThisYear;
 
-      // 3. Sickness & Late-Life Health Decline (consumes waking hours, not sleep!)
-      // In late-life fragility years (beyond healthspanAge), chronic fatigue/medical care adds ~2.5 waking hrs/day
       const lateLifeExtraSickDays = isHealthyYear ? 0 : 35;
       const effectiveSickDays = Math.min(DAYS_PER_YEAR, s.sickDaysPerYear + lateLifeExtraSickDays);
       const yrSick = effectiveSickDays * wakingNonRoutineHrsPerDay * activeYearScale;
 
-      // 4. Career / Work & Encore Work
       const yrWork = isWorkingYear
         ? s.workHrsPerWeek * s.workWeeksPerYear * activeYearScale
         : s.encoreWorkHrsPerWeek * WEEKS_PER_YEAR * (isHealthyYear ? 1 : 0.3) * activeYearScale;
 
-      // 5. Commuting (ONLY on actual onsite workdays during working years!)
       const onsiteWorkdaysPerYear = isWorkingYear
         ? s.workDaysPerWeek * s.workWeeksPerYear * (1 - s.remoteWorkPercent / 100)
         : 0;
       const yrCommute = s.commuteHrsPerWorkday * onsiteWorkdaysPerYear * activeYearScale;
 
-      // 6. Education / Schooling (190 academic days/year during school years)
       const yrSchool = isSchoolYear ? s.schoolHrsPerDay * 190 * activeYearScale : 0;
-
-      // 7. Caregiving / Parenting Window
       const yrCaregiving = isCaregivingYear ? s.caregivingHrsPerWeek * WEEKS_PER_YEAR * activeYearScale : 0;
 
-      // 8. Unseen Friction (Waiting, Life Admin, Disasters, Passive Screen Drift)
       const yrWait = s.waitHrsPerWeek * WEEKS_PER_YEAR * activeYearScale;
       const yrAdmin = s.adminHrsPerWeek * WEEKS_PER_YEAR * activeYearScale;
       const yrScreen = s.passiveScreenHrsPerDay * DAYS_PER_YEAR * activeYearScale;
       const yrDisaster = s.disasterHrsPerYear * activeYearScale;
 
-      // 9. Intentional Living (Exercise, Self-Improvement, True Leisure)
       const yrExercise = s.exerciseHrsPerWeek * WEEKS_PER_YEAR * activeYearScale;
       const yrGrowth = s.growthHrsPerWeek * WEEKS_PER_YEAR * activeYearScale;
       const yrFun = s.funHrsPerWeek * WEEKS_PER_YEAR * activeYearScale;
@@ -616,7 +681,6 @@ export default function LifespanApp() {
       });
     }
 
-    // Current Daily 24-Hour Audit (Workday vs Weekend vs Retirement Day)
     const dailyWorkHrsOnWorkday = s.workDaysPerWeek > 0 ? s.workHrsPerWeek / s.workDaysPerWeek : 0;
     const dailyCommuteOnWorkday = s.commuteHrsPerWorkday * (1 - s.remoteWorkPercent / 100);
     const dailySchoolNow = s.schoolYearsRemaining > 0 ? s.schoolHrsPerDay : 0;
@@ -667,18 +731,6 @@ export default function LifespanApp() {
         weekendFree: HOURS_PER_DAY - currentWeekendUsed,
         retirementUsed: retirementDayUsed,
         retirementFree: HOURS_PER_DAY - retirementDayUsed,
-        breakdownWorkday: [
-          { name: 'Sleep', hrs: s.sleepHrsPerDay, color: '#1e40af' },
-          { name: 'Routines', hrs: s.routineHrsPerDay, color: '#0f766e' },
-          {
-            name: 'Work & Commute',
-            hrs: s.currentAge < s.retirementAge ? dailyWorkHrsOnWorkday + dailyCommuteOnWorkday : s.encoreWorkHrsPerWeek / 5,
-            color: '#c2410c',
-          },
-          { name: 'School & Caregiving', hrs: dailySchoolNow + dailyCaregivingNow, color: '#7e22ce' },
-          { name: 'Friction & Screens', hrs: dailyFrictionNow, color: '#64748b' },
-          { name: 'Growth, Fitness & Fun', hrs: dailyIntentionalNow, color: '#0891b2' },
-        ],
       },
     };
   }, []);
@@ -692,23 +744,23 @@ export default function LifespanApp() {
   const calculations = useMemo(() => {
     const t = sim.totals;
     return [
-      { id: 'sleep', name: 'Sleep & Rest', hours: t.sleep, color: '#1d4ed8', category: 'inevitable', icon: Moon },
-      { id: 'routine', name: 'Daily Maintenance (Eat, Cook, Hygiene)', hours: t.routine, color: '#0f766e', category: 'inevitable', icon: Coffee },
-      { id: 'work', name: 'Career & Encore Work', hours: t.work, color: '#c2410c', category: 'inevitable', icon: Briefcase },
-      { id: 'school', name: 'Education & Study', hours: t.school, color: '#7e22ce', category: 'inevitable', icon: GraduationCap },
-      { id: 'caregiving', name: 'Family & Caregiving Window', hours: t.caregiving, color: '#db2777', category: 'inevitable', icon: Users },
+      { id: 'sleep', name: 'Sleep & Nocturnal Rest', hours: t.sleep, color: '#2563eb', category: 'inevitable', icon: Moon },
+      { id: 'routine', name: 'Daily Maintenance & Rituals', hours: t.routine, color: '#0d9488', category: 'inevitable', icon: Coffee },
+      { id: 'work', name: 'Career & Encore Labor', hours: t.work, color: '#ea580c', category: 'inevitable', icon: Briefcase },
+      { id: 'school', name: 'Academic Study & Training', hours: t.school, color: '#9333ea', category: 'inevitable', icon: GraduationCap },
+      { id: 'caregiving', name: 'Family & Lineage Caregiving', hours: t.caregiving, color: '#db2777', category: 'inevitable', icon: Users },
 
-      { id: 'commute', name: 'Onsite Commuting', hours: t.commute, color: '#475569', category: 'friction', icon: Car },
-      { id: 'screen', name: 'Passive Screen / Feed Drift', hours: t.screen, color: '#6366f1', category: 'friction', icon: Smartphone },
-      { id: 'sick', name: 'Illness & Late-Life Morbidity', hours: t.sick, color: '#b91c1c', category: 'friction', icon: Thermometer },
-      { id: 'admin', name: 'Life Admin, Errands & Bills', hours: t.admin, color: '#a16207', category: 'friction', icon: PhoneCall },
-      { id: 'wait', name: 'Waiting in Lines & Traffic', hours: t.wait, color: '#57534e', category: 'friction', icon: Hourglass },
-      { id: 'disaster', name: 'Unexpected Disasters & Repairs', hours: t.disaster, color: '#ea580c', category: 'friction', icon: AlertTriangle },
-      { id: 'detour', name: 'Major Life Detours', hours: t.detour, color: '#7f1d1d', category: 'friction', icon: RouteOff },
+      { id: 'commute', name: 'Onsite Transit & Commuting', hours: t.commute, color: '#64748b', category: 'friction', icon: Car },
+      { id: 'screen', name: 'Algorithmic / Screen Drift', hours: t.screen, color: '#6366f1', category: 'friction', icon: Smartphone },
+      { id: 'sick', name: 'Illness & Late-Life Morbidity', hours: t.sick, color: '#dc2626', category: 'friction', icon: Thermometer },
+      { id: 'admin', name: 'Life Admin & Bureaucracy', hours: t.admin, color: '#ca8a04', category: 'friction', icon: PhoneCall },
+      { id: 'wait', name: 'Queues, Delays & Traffic', hours: t.wait, color: '#78716c', category: 'friction', icon: Hourglass },
+      { id: 'disaster', name: 'Unexpected Disasters', hours: t.disaster, color: '#f97316', category: 'friction', icon: AlertTriangle },
+      { id: 'detour', name: 'Major Life Detours', hours: t.detour, color: '#991b1b', category: 'friction', icon: RouteOff },
 
-      { id: 'exercise', name: 'Physical Fitness & Longevity', hours: t.exercise, color: '#10b981', category: 'choice', icon: Activity },
-      { id: 'growth', name: 'Mastery & Self-Improvement', hours: t.growth, color: '#059669', category: 'choice', icon: BookOpen },
-      { id: 'fun', name: 'True Leisure, Art & Connection', hours: t.fun, color: '#0891b2', category: 'choice', icon: Smile },
+      { id: 'exercise', name: 'Physical Vitality & Sport', hours: t.exercise, color: '#10b981', category: 'choice', icon: Activity },
+      { id: 'growth', name: 'Mastery & Deep Craft', hours: t.growth, color: '#059669', category: 'choice', icon: BookOpen },
+      { id: 'fun', name: 'True Leisure & Communion', hours: t.fun, color: '#06b6d4', category: 'choice', icon: Smile },
     ];
   }, [sim.totals]);
 
@@ -716,12 +768,19 @@ export default function LifespanApp() {
   const healthyFreeRemainingHours = sim.totals.healthyFree;
   const wakingHoursRemaining = Math.max(1, sim.totalRemainingHours - sim.totals.sleep);
 
-  // Discretionary Sovereign Time = Unallocated Free Time + Intentional Choice (Exercise + Growth + Fun)
-  const totalSovereignHours =
-    Math.max(0, trulyFreeRemainingHours) +
-    sim.totals.exercise +
-    sim.totals.growth +
-    sim.totals.fun;
+  const inevitableHours =
+    sim.totals.sleep + sim.totals.routine + sim.totals.work + sim.totals.school + sim.totals.caregiving;
+  const frictionHours =
+    sim.totals.commute +
+    sim.totals.screen +
+    sim.totals.sick +
+    sim.totals.admin +
+    sim.totals.wait +
+    sim.totals.disaster +
+    sim.totals.detour;
+  const choiceHours = sim.totals.exercise + sim.totals.growth + sim.totals.fun;
+
+  const totalSovereignHours = Math.max(0, trulyFreeRemainingHours) + choiceHours;
 
   const chartData = useMemo(() => {
     return [
@@ -741,7 +800,6 @@ export default function LifespanApp() {
     ];
   }, [calculations, trulyFreeRemainingHours]);
 
-  // Pin or clear baseline for scenario comparison
   const toggleBaseline = () => {
     if (baseline) {
       setBaseline(null);
@@ -761,620 +819,800 @@ export default function LifespanApp() {
   const freeDeltaHrs = baselineSim ? trulyFreeRemainingHours - baselineSim.totals.free : null;
   const lifespanDeltaYrs = baselineSim ? sim.lifespan - baselineSim.lifespan : null;
 
+  const inspectedAge = hoveredAge !== null ? hoveredAge : state.currentAge;
+  const inspectedRow = sim.yearlyTimeline.find((r) => r.age === inspectedAge);
+
   return (
-    <div className="min-h-screen bg-[#070709] text-gray-100 p-4 md:p-8 font-sans selection:bg-red-500/30">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#050507] text-zinc-100 relative overflow-x-hidden selection:bg-red-600/30">
+      {/* Subtle Sacred Geometry & Architectural Background Grid */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.035]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, #ffffff 1px, transparent 1px),
+            linear-gradient(to bottom, #ffffff 1px, transparent 1px)
+          `,
+          backgroundSize: '64px 64px',
+        }}
+      />
+      {/* Top Axial Zenith Glow */}
+      <div
+        className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[320px] opacity-20 blur-[130px]"
+        style={{
+          background: 'radial-gradient(circle, #dc2626 0%, #991b1b 45%, transparent 75%)',
+        }}
+      />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-12">
         
-        {/* Top Action & Scenario Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-900/60 border border-gray-800/80 rounded-2xl px-4 py-3 backdrop-blur">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500 mr-1 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-red-500" />
-              Profiles:
-            </span>
-            {Object.entries(PRESETS).map(([key, preset]) => (
+        {/* ============================================================================
+            1. CEREMONIAL AXIAL HEADER & SYMMETRICAL COMMAND BAR
+           ============================================================================ */}
+        <header className="space-y-6">
+          {/* Top Crest & Flanking Geometric Lines */}
+          <div className="flex items-center justify-center gap-4">
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-zinc-800 to-red-900/60" />
+            <div className="flex items-center gap-3 px-4 py-1 border border-zinc-800 bg-[#090a0f]">
+              <span className="w-1.5 h-1.5 rotate-45 bg-red-600" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.35em] text-zinc-400">
+                MEMENTO MORI // ACTUARIAL HOROLOGY
+              </span>
+              <span className="w-1.5 h-1.5 rotate-45 bg-red-600" />
+            </div>
+            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-zinc-800 to-red-900/60" />
+          </div>
+
+          {/* Centered Monumental Title */}
+          <div className="text-center space-y-3 max-w-3xl mx-auto">
+            <h1
+              className="text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-[0.14em] text-white"
+              style={{ fontFamily: "'Cinzel', 'Space Grotesk', serif" }}
+            >
+              The Finite Canvas
+            </h1>
+            <p className="text-xs sm:text-sm md:text-base text-zinc-400 font-normal tracking-wide leading-relaxed">
+              Every solar year grants exactly <span className="text-zinc-200 font-mono font-semibold">8,765.82</span> hours.
+              An architectural ledger of mortality, phase transitions, and sovereign freedom.
+            </p>
+          </div>
+
+          {/* Symmetrical Command Bar (4 Archetypes Left | 3 Telemetry Controls Right) */}
+          <div className="relative bg-[#090a0e] border border-zinc-800/90 p-3 flex flex-col lg:flex-row items-center justify-between gap-3">
+            <CornerReticles />
+
+            <div className="flex flex-wrap items-center justify-center gap-2 w-full lg:w-auto">
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500 px-2 flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-red-500" />
+                ARCHETYPES:
+              </span>
+              {Object.entries(PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => applyPreset(key)}
+                  title={preset.subtitle}
+                  className={`text-xs font-mono uppercase tracking-wider px-3 py-1.5 border transition-all ${
+                    activePreset === key
+                      ? 'bg-red-950/60 border-red-500 text-white shadow-[0_0_20px_rgba(220,38,38,0.25)]'
+                      : 'bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100'
+                  }`}
+                >
+                  <span className="text-red-500 mr-1.5">{preset.code}.</span>
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="hidden lg:block w-[1px] h-6 bg-zinc-800" />
+
+            <div className="flex flex-wrap items-center justify-center gap-2 w-full lg:w-auto">
               <button
-                key={key}
                 type="button"
-                onClick={() => applyPreset(key)}
-                title={preset.subtitle}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${
-                  activePreset === key
-                    ? 'bg-red-600/20 border-red-500 text-red-300 shadow-[0_0_15px_rgba(220,38,38,0.2)]'
-                    : 'bg-gray-800/60 border-gray-700/70 text-gray-300 hover:bg-gray-800 hover:text-white'
+                onClick={toggleBaseline}
+                className={`text-xs font-mono uppercase tracking-wider px-3 py-1.5 border flex items-center gap-1.5 transition-all ${
+                  baseline
+                    ? 'bg-amber-950/50 border-amber-500/80 text-amber-300'
+                    : 'bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100'
                 }`}
               >
-                {preset.name}
+                <Bookmark className="w-3.5 h-3.5" />
+                {baseline ? 'CLEAR BASELINE' : 'PIN BASELINE'}
               </button>
-            ))}
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={toggleBaseline}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all ${
-                baseline
-                  ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
-                  : 'bg-gray-800/60 border-gray-700/70 text-gray-300 hover:bg-gray-800'
-              }`}
-            >
-              <Bookmark className="w-3.5 h-3.5" />
-              {baseline ? 'Clear Pinned Baseline' : 'Pin Current as Baseline'}
-            </button>
+              <button
+                type="button"
+                onClick={copyScenarioJson}
+                className="text-xs font-mono uppercase tracking-wider px-3 py-1.5 border bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 flex items-center gap-1.5 transition-all"
+              >
+                {copiedNotice ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedNotice ? 'COPIED' : 'EXPORT JSON'}
+              </button>
 
-            <button
-              type="button"
-              onClick={copyScenarioJson}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border bg-gray-800/60 border-gray-700/70 text-gray-300 hover:bg-gray-800 flex items-center gap-1.5 transition-all"
-              title="Copy configuration JSON to clipboard"
-            >
-              {copiedNotice ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copiedNotice ? 'Copied!' : 'Export JSON'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActivePreset(null);
-                setState(DEFAULT_STATE);
-              }}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg border bg-gray-800/60 border-gray-700/70 text-gray-400 hover:text-white hover:bg-gray-800 flex items-center gap-1.5 transition-all"
-              title="Reset to default parameters"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
-            </button>
-          </div>
-        </div>
-
-        {/* Header & Actuarial Hero Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch border-b border-gray-800/80 pb-8">
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-950/60 border border-red-900/60 text-red-400 text-xs font-semibold tracking-wide uppercase mb-3">
-                <HeartPulse className="w-3.5 h-3.5" />
-                Actuarial & Phase-Aware Time Accounting
-              </div>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white mb-3 flex items-center gap-3">
-                <Hourglass className="text-red-600 w-10 h-10 md:w-12 md:h-12 animate-pulse flex-shrink-0" />
-                The Finite Canvas
-              </h1>
-              <p className="text-gray-400 max-w-2xl text-base md:text-lg leading-relaxed">
-                Every year contains exactly <span className="text-gray-200 font-mono font-semibold">8,765.8</span> hours.
-                Model your remaining life across career, retirement, and healthspan phases—free of double-counted sleep or flat-average illusions.
-              </p>
-            </div>
-
-            {/* Demographic & Lifespan Controls Card */}
-            <div className="space-y-5 bg-gray-900/60 p-5 md:p-6 rounded-2xl border border-gray-800/90 shadow-inner">
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-gray-800/80">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Lifespan Model:</span>
-                  <button
-                    type="button"
-                    onClick={() => updateField('useActuarialLifespan', true)}
-                    className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      state.useActuarialLifespan
-                        ? 'bg-red-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                    }`}
-                  >
-                    SSA Actuarial + Habits ({sim.actuarial.calculatedLifespan}y)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => updateField('useActuarialLifespan', false)}
-                    className={`text-xs px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      !state.useActuarialLifespan
-                        ? 'bg-red-600 text-white'
-                        : 'bg-gray-800 text-gray-400 hover:text-gray-200'
-                    }`}
-                  >
-                    Manual Target
-                  </button>
-                </div>
-
-                {state.useActuarialLifespan && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 mr-1">Cohort:</span>
-                    {(['average', 'female', 'male'] as BiologicalSex[]).map((sexOpt) => (
-                      <button
-                        key={sexOpt}
-                        type="button"
-                        onClick={() => updateField('sex', sexOpt)}
-                        className={`text-xs capitalize px-2.5 py-1 rounded-md font-medium transition-colors ${
-                          state.sex === sexOpt
-                            ? 'bg-gray-700 text-white border border-gray-600'
-                            : 'bg-gray-800/60 text-gray-400 hover:text-gray-200'
-                        }`}
-                      >
-                        {sexOpt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                <div className="space-y-1.5">
-                  <label className="flex justify-between text-xs font-medium text-gray-400">
-                    <span>Current Age</span>
-                    <span className="text-white font-bold font-mono text-base">{state.currentAge} yrs</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={15}
-                    max={Math.max(16, sim.lifespan - 1)}
-                    value={state.currentAge}
-                    onChange={(e) => updateField('currentAge', parseInt(e.target.value, 10))}
-                    className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer"
-                    style={{ accentColor: '#dc2626' }}
-                  />
-                  <div className="text-[11px] text-gray-500 font-mono">
-                    Lived: {formatNum(sim.hoursLived)} hrs
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="flex justify-between text-xs font-medium text-gray-400">
-                    <span>Retirement Age</span>
-                    <span className="text-orange-400 font-bold font-mono text-base">
-                      {state.retirementAge <= state.currentAge ? 'Retired' : `${state.retirementAge} yrs`}
-                    </span>
-                  </label>
-                  <input
-                    type="range"
-                    min={Math.min(state.currentAge, 45)}
-                    max={Math.min(90, sim.lifespan)}
-                    value={state.retirementAge}
-                    onChange={(e) => updateField('retirementAge', parseInt(e.target.value, 10))}
-                    className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer"
-                    style={{ accentColor: '#ea580c' }}
-                  />
-                  <div className="text-[11px] text-gray-500 font-mono">
-                    {Math.max(0, Math.min(sim.lifespan, state.retirementAge) - state.currentAge)} working yrs left
-                  </div>
-                </div>
-
-                {state.useActuarialLifespan ? (
-                  <div className="space-y-1.5">
-                    <label className="flex justify-between text-xs font-medium text-gray-400">
-                      <span>Genetics / Health Offset</span>
-                      <span className="text-emerald-400 font-bold font-mono text-base">
-                        {state.healthLifestyleScore > 0 ? `+${state.healthLifestyleScore}` : state.healthLifestyleScore} yrs
-                      </span>
-                    </label>
-                    <input
-                      type="range"
-                      min={-10}
-                      max={10}
-                      step={1}
-                      value={state.healthLifestyleScore}
-                      onChange={(e) => updateField('healthLifestyleScore', parseInt(e.target.value, 10))}
-                      className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer"
-                      style={{ accentColor: '#10b981' }}
-                    />
-                    <div className="text-[11px] text-gray-500 font-mono">
-                      Net habit/cohort effect: {sim.actuarial.lifestyleDelta >= 0 ? `+${sim.actuarial.lifestyleDelta}` : sim.actuarial.lifestyleDelta}y
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="flex justify-between text-xs font-medium text-gray-400">
-                      <span>Expected Lifespan</span>
-                      <span className="text-white font-bold font-mono text-base">{sim.lifespan} yrs</span>
-                    </label>
-                    <input
-                      type="range"
-                      min={Math.max(40, state.currentAge + 1)}
-                      max={115}
-                      value={state.customLifespan}
-                      onChange={(e) => updateField('customLifespan', parseInt(e.target.value, 10))}
-                      className="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer"
-                      style={{ accentColor: '#6b7280' }}
-                    />
-                    <div className="text-[11px] text-gray-500 font-mono">
-                      Healthspan est: ~{sim.actuarial.healthspanAge} yrs
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Lifespan & Healthspan Progress Bar */}
-              <div className="pt-2 space-y-2">
-                <div className="flex flex-wrap justify-between text-xs font-mono uppercase tracking-wider gap-2">
-                  <span className="text-gray-400">
-                    Lived: <strong className="text-gray-200">{state.currentAge}y</strong> ({sim.livedPercentage.toFixed(1)}%)
-                  </span>
-                  <span className="text-emerald-400">
-                    Healthy Window: <strong className="text-emerald-300">Age {state.currentAge}→{sim.actuarial.healthspanAge}</strong> ({Math.max(0, sim.actuarial.healthspanAge - state.currentAge)}y)
-                  </span>
-                  <span className="text-red-400 font-bold">
-                    Total Left: {formatNum(sim.totalRemainingHours)} hrs ({sim.yearsRemaining}y)
-                  </span>
-                </div>
-
-                <div className="w-full bg-gray-800 rounded-full h-3.5 flex overflow-hidden shadow-inner border border-gray-700/50">
-                  <div
-                    className="bg-gray-600 h-full transition-all duration-500"
-                    style={{ width: `${sim.livedPercentage}%` }}
-                    title={`Already lived: ${state.currentAge} years`}
-                  />
-                  <div
-                    className="bg-gradient-to-r from-emerald-600 to-teal-500 h-full transition-all duration-500"
-                    style={{
-                      width: `${Math.max(0, ((sim.actuarial.healthspanAge - state.currentAge) / sim.lifespan) * 100)}%`,
-                    }}
-                    title={`Healthy remaining window: ${Math.max(0, sim.actuarial.healthspanAge - state.currentAge)} years`}
-                  />
-                  <div
-                    className="bg-red-900/90 h-full transition-all duration-500"
-                    style={{
-                      width: `${Math.max(0, ((sim.lifespan - sim.actuarial.healthspanAge) / sim.lifespan) * 100)}%`,
-                    }}
-                    title={`Late-life reduced healthspan window: ${sim.actuarial.morbidityYears} years`}
-                  />
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePreset(null);
+                  setState(DEFAULT_STATE);
+                }}
+                className="text-xs font-mono uppercase tracking-wider px-3 py-1.5 border bg-zinc-900/70 border-zinc-800 text-zinc-400 hover:border-red-800 hover:text-red-300 flex items-center gap-1.5 transition-all"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                RESET
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Right Hero Card: Sovereign Time & Healthspan Metrics */}
-          <div
-            className={`lg:col-span-5 flex flex-col justify-between p-6 md:p-8 rounded-2xl border ${
-              trulyFreeRemainingHours < 0
-                ? 'bg-red-950/25 border-red-900/60 text-red-400'
-                : 'bg-gray-900/50 border-gray-800 text-gray-100 shadow-[0_0_50px_rgba(0,0,0,0.4)]'
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="text-xs uppercase tracking-widest font-bold text-gray-400 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-emerald-400" />
-                  {trulyFreeRemainingHours < 0 ? 'Schedule Deficit (Overbooked)' : 'Unallocated Free Time Left'}
-                </div>
-                <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
-                  Lifespan: {sim.lifespan} yrs
+        {/* ============================================================================
+            2. SYMMETRICAL TWIN-MONOLITH HERO (6 COLS LEFT | 6 COLS RIGHT)
+           ============================================================================ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* LEFT MONOLITH (6 COLS): TEMPORAL HORIZON & ACTUARIAL CALIBRATION */}
+          <div className="lg:col-span-6 relative bg-[#090a0f] border border-zinc-800 p-6 md:p-8 flex flex-col justify-between space-y-6">
+            <CornerReticles color="border-zinc-500/80" />
+            <div className="absolute top-0 left-10 right-10 h-[1px] bg-gradient-to-r from-transparent via-red-600/70 to-transparent" />
+
+            {/* Top Header Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-zinc-800/90">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rotate-45 bg-red-600" />
+                <span className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-300 font-bold">
+                  01 // TEMPORAL HORIZON CALIBRATION
                 </span>
               </div>
 
-              <div className="text-5xl md:text-6xl font-black font-mono text-white tracking-tighter my-1">
-                {formatNum(trulyFreeRemainingHours)}
-                <span className="text-xl font-normal text-gray-500 ml-2">hrs</span>
+              <div className="flex items-center border border-zinc-800 bg-zinc-950 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => updateField('useActuarialLifespan', true)}
+                  className={`text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 transition-all ${
+                    state.useActuarialLifespan
+                      ? 'bg-red-600 text-white font-bold'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  ACTUARIAL ({sim.actuarial.calculatedLifespan}Y)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('useActuarialLifespan', false)}
+                  className={`text-[11px] font-mono uppercase tracking-wider px-2.5 py-1 transition-all ${
+                    !state.useActuarialLifespan
+                      ? 'bg-red-600 text-white font-bold'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  MANUAL
+                </button>
+              </div>
+            </div>
+
+            {/* Cohort Selector Bar */}
+            <div className="grid grid-cols-3 gap-2">
+              {(['average', 'female', 'male'] as BiologicalSex[]).map((sexOpt) => (
+                <button
+                  key={sexOpt}
+                  type="button"
+                  disabled={!state.useActuarialLifespan}
+                  onClick={() => updateField('sex', sexOpt)}
+                  className={`py-2 px-3 border text-center font-mono text-xs uppercase tracking-widest transition-all ${
+                    !state.useActuarialLifespan
+                      ? 'opacity-40 cursor-not-allowed border-zinc-900 bg-zinc-950 text-zinc-600'
+                      : state.sex === sexOpt
+                      ? 'bg-zinc-800/90 border-zinc-500 text-white font-bold shadow-inner'
+                      : 'bg-zinc-950/60 border-zinc-800/80 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  COHORT // {sexOpt}
+                </button>
+              ))}
+            </div>
+
+            {/* 3 Symmetrical Primary Horizon Dials */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Dial 1: Current Age */}
+              <div className="bg-zinc-950/80 border border-zinc-800/90 p-4 flex flex-col justify-between space-y-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">CURRENT AGE</span>
+                  <span className="text-xl font-black font-mono text-white">{state.currentAge}Y</span>
+                </div>
+                <input
+                  type="range"
+                  min={15}
+                  max={Math.max(16, sim.lifespan - 1)}
+                  value={state.currentAge}
+                  onChange={(e) => updateField('currentAge', parseInt(e.target.value, 10))}
+                  className="angular-slider w-full"
+                  style={{ color: '#dc2626' }}
+                />
+                <div className="text-[10px] font-mono text-zinc-500 flex justify-between">
+                  <span>EXPENDED</span>
+                  <span className="text-zinc-300">{sim.livedPercentage.toFixed(1)}%</span>
+                </div>
               </div>
 
-              {/* Baseline Delta Comparison Pill */}
-              {baselineSim && (
-                <div className="mt-2 inline-flex items-center gap-3 text-xs font-mono px-3 py-1.5 rounded-lg bg-amber-950/40 border border-amber-800/60 text-amber-300">
-                  <span>
-                    vs. Baseline:{' '}
-                    <strong className={freeDeltaHrs && freeDeltaHrs >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                      {freeDeltaHrs && freeDeltaHrs >= 0 ? `+${formatNum(freeDeltaHrs)}` : formatNum(freeDeltaHrs || 0)} hrs
-                    </strong>
+              {/* Dial 2: Retirement Age */}
+              <div className="bg-zinc-950/80 border border-zinc-800/90 p-4 flex flex-col justify-between space-y-3">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">EXIT CAREER</span>
+                  <span className="text-xl font-black font-mono text-orange-400">
+                    {state.retirementAge <= state.currentAge ? 'NOW' : `${state.retirementAge}Y`}
                   </span>
-                  {lifespanDeltaYrs !== 0 && (
-                    <span>
-                      ({lifespanDeltaYrs && lifespanDeltaYrs > 0 ? `+${lifespanDeltaYrs}` : lifespanDeltaYrs}y lifespan)
+                </div>
+                <input
+                  type="range"
+                  min={Math.min(state.currentAge, 45)}
+                  max={Math.min(90, sim.lifespan)}
+                  value={state.retirementAge}
+                  onChange={(e) => updateField('retirementAge', parseInt(e.target.value, 10))}
+                  className="angular-slider w-full"
+                  style={{ color: '#ea580c' }}
+                />
+                <div className="text-[10px] font-mono text-zinc-500 flex justify-between">
+                  <span>LABOR LEFT</span>
+                  <span className="text-orange-300">
+                    {Math.max(0, Math.min(sim.lifespan, state.retirementAge) - state.currentAge)}Y
+                  </span>
+                </div>
+              </div>
+
+              {/* Dial 3: Longevity Offset or Manual Lifespan */}
+              {state.useActuarialLifespan ? (
+                <div className="bg-zinc-950/80 border border-zinc-800/90 p-4 flex flex-col justify-between space-y-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">GENETIC DELTA</span>
+                    <span className="text-xl font-black font-mono text-emerald-400">
+                      {state.healthLifestyleScore > 0 ? `+${state.healthLifestyleScore}` : state.healthLifestyleScore}Y
                     </span>
-                  )}
+                  </div>
+                  <input
+                    type="range"
+                    min={-10}
+                    max={10}
+                    step={1}
+                    value={state.healthLifestyleScore}
+                    onChange={(e) => updateField('healthLifestyleScore', parseInt(e.target.value, 10))}
+                    className="angular-slider w-full"
+                    style={{ color: '#10b981' }}
+                  />
+                  <div className="text-[10px] font-mono text-zinc-500 flex justify-between">
+                    <span>NET MODIFIER</span>
+                    <span className="text-emerald-300">
+                      {sim.actuarial.lifestyleDelta >= 0 ? `+${sim.actuarial.lifestyleDelta}Y` : `${sim.actuarial.lifestyleDelta}Y`}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-zinc-950/80 border border-zinc-800/90 p-4 flex flex-col justify-between space-y-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">HORIZON AGE</span>
+                    <span className="text-xl font-black font-mono text-white">{sim.lifespan}Y</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={Math.max(40, state.currentAge + 1)}
+                    max={115}
+                    value={state.customLifespan}
+                    onChange={(e) => updateField('customLifespan', parseInt(e.target.value, 10))}
+                    className="angular-slider w-full"
+                    style={{ color: '#a1a1aa' }}
+                  />
+                  <div className="text-[10px] font-mono text-zinc-500 flex justify-between">
+                    <span>HEALTHSPAN</span>
+                    <span className="text-emerald-300">~{sim.actuarial.healthspanAge}Y</span>
+                  </div>
                 </div>
               )}
+            </div>
 
-              <div
-                className={`mt-4 text-sm font-medium px-4 py-2.5 rounded-xl border ${
-                  trulyFreeRemainingHours > 0
-                    ? 'bg-emerald-950/40 text-emerald-300 border-emerald-900/50'
-                    : 'bg-red-950/50 text-red-400 border-red-900/60'
-                }`}
-              >
-                {trulyFreeRemainingHours > 0 ? (
-                  <>
-                    ≈ <strong>{(trulyFreeRemainingHours / HOURS_PER_YEAR).toFixed(1)} years</strong> of raw unallocated time (
-                    <strong>{(healthyFreeRemainingHours / HOURS_PER_YEAR).toFixed(1)} yrs</strong> in peak health).
-                  </>
-                ) : (
-                  <>
-                    Your commitments exceed 24h/day by{' '}
-                    <strong>{(Math.abs(trulyFreeRemainingHours) / sim.yearsRemaining / DAYS_PER_YEAR).toFixed(1)} hrs/day</strong>.
-                  </>
+            {/* Precision 3-Phase Horizon Bar & Symmetrical Legend */}
+            <div className="space-y-3 pt-2 border-t border-zinc-800/80">
+              <div className="w-full bg-zinc-950 h-4 flex overflow-hidden border border-zinc-800 p-0.5 gap-0.5">
+                <div
+                  className="bg-zinc-600 h-full transition-all duration-500"
+                  style={{ width: `${sim.livedPercentage}%` }}
+                />
+                <div
+                  className="bg-emerald-500 h-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(0, ((sim.actuarial.healthspanAge - state.currentAge) / sim.lifespan) * 100)}%`,
+                  }}
+                />
+                <div
+                  className="bg-red-800 h-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(0, ((sim.lifespan - sim.actuarial.healthspanAge) / sim.lifespan) * 100)}%`,
+                  }}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 text-[11px] font-mono">
+                <div className="flex items-center gap-2 text-zinc-400">
+                  <span className="w-2 h-2 bg-zinc-600 inline-block" />
+                  <span>PAST: {state.currentAge}Y</span>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-emerald-400">
+                  <span className="w-2 h-2 bg-emerald-500 inline-block" />
+                  <span>VITAL: {Math.max(0, sim.actuarial.healthspanAge - state.currentAge)}Y</span>
+                </div>
+                <div className="flex items-center justify-end gap-2 text-red-400">
+                  <span className="w-2 h-2 bg-red-800 inline-block" />
+                  <span>TWILIGHT: {sim.actuarial.morbidityYears}Y</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT MONOLITH (6 COLS): SOVEREIGN TIME & DISCRETIONARY CAPITAL */}
+          <div
+            className={`lg:col-span-6 relative bg-[#090a0f] border p-6 md:p-8 flex flex-col justify-between space-y-6 ${
+              trulyFreeRemainingHours < 0 ? 'border-red-800/90' : 'border-zinc-800'
+            }`}
+          >
+            <CornerReticles color={trulyFreeRemainingHours < 0 ? 'border-red-500' : 'border-emerald-500/80'} />
+            <div
+              className="absolute top-0 left-10 right-10 h-[1px]"
+              style={{
+                background:
+                  trulyFreeRemainingHours < 0
+                    ? 'linear-gradient(90deg, transparent, #dc2626, transparent)'
+                    : 'linear-gradient(90deg, transparent, #10b981, transparent)',
+              }}
+            />
+
+            {/* Top Header Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-zinc-800/90">
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rotate-45 ${
+                    trulyFreeRemainingHours < 0 ? 'bg-red-500' : 'bg-emerald-400'
+                  }`}
+                />
+                <span className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-300 font-bold">
+                  02 // {trulyFreeRemainingHours < 0 ? 'TEMPORAL INSOLVENCY' : 'UNALLOCATED SOVEREIGN TIME'}
+                </span>
+              </div>
+
+              <span className="text-[11px] font-mono uppercase tracking-widest px-2.5 py-1 bg-zinc-950 border border-zinc-800 text-zinc-300">
+                HORIZON // {sim.lifespan} YEARS ({sim.yearsRemaining}Y LEFT)
+              </span>
+            </div>
+
+            {/* Central Monumental Number Readout */}
+            <div className="text-center py-2 space-y-2">
+              <div className="text-5xl sm:text-6xl md:text-7xl font-black font-mono tracking-tighter text-white">
+                {formatNum(trulyFreeRemainingHours)}
+                <span className="text-lg sm:text-xl font-normal text-zinc-500 ml-3 tracking-widest uppercase">
+                  HRS
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <span
+                  className={`text-xs font-mono uppercase tracking-widest px-3 py-1 border ${
+                    trulyFreeRemainingHours >= 0
+                      ? 'bg-emerald-950/40 border-emerald-800/70 text-emerald-300'
+                      : 'bg-red-950/50 border-red-800 text-red-300'
+                  }`}
+                >
+                  {trulyFreeRemainingHours >= 0
+                    ? `≈ ${(trulyFreeRemainingHours / HOURS_PER_YEAR).toFixed(2)} YEARS OF UNSCRIPTED AUTONOMY`
+                    : `OVERBOOKED BY ${(Math.abs(trulyFreeRemainingHours) / sim.yearsRemaining / DAYS_PER_YEAR).toFixed(1)} HRS/DAY`}
+                </span>
+
+                {baselineSim && (
+                  <span className="text-xs font-mono uppercase tracking-wider px-3 py-1 bg-amber-950/40 border border-amber-700/70 text-amber-300">
+                    DELTA:{' '}
+                    <strong className={freeDeltaHrs && freeDeltaHrs >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                      {freeDeltaHrs && freeDeltaHrs >= 0 ? `+${formatNum(freeDeltaHrs)}` : formatNum(freeDeltaHrs || 0)} HRS
+                    </strong>
+                    {lifespanDeltaYrs !== 0 && ` (${lifespanDeltaYrs && lifespanDeltaYrs > 0 ? `+${lifespanDeltaYrs}` : lifespanDeltaYrs}Y)`}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Key Sub-Metrics Grid */}
-            <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-800/80">
-              <div className="bg-gray-950/60 border border-gray-800/80 rounded-xl p-3.5">
-                <div className="text-[11px] text-gray-500 uppercase font-bold tracking-wider">
-                  Total Discretionary (Choice + Free)
-                </div>
-                <div className="text-xl font-black font-mono text-cyan-400 mt-1">
-                  {formatNum(totalSovereignHours)} <span className="text-xs font-normal text-gray-500">hrs</span>
-                </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
-                  {((totalSovereignHours / wakingHoursRemaining) * 100).toFixed(1)}% of remaining waking life
+            {/* Symmetrical 2x2 Sub-Telemetry Matrix */}
+            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800/80">
+              <div className="bg-zinc-950/90 border border-zinc-800/90 p-3.5 flex flex-col justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                  PEAK HEALTHSPAN FREE
+                </span>
+                <div className="text-lg sm:text-xl font-extrabold font-mono text-emerald-400 mt-1">
+                  {formatNum(healthyFreeRemainingHours)}{' '}
+                  <span className="text-xs font-normal text-zinc-500">
+                    ({(healthyFreeRemainingHours / HOURS_PER_YEAR).toFixed(1)}Y)
+                  </span>
                 </div>
               </div>
 
-              <div className="bg-gray-950/60 border border-gray-800/80 rounded-xl p-3.5">
-                <div className="text-[11px] text-gray-500 uppercase font-bold tracking-wider">
-                  Today&apos;s Workday Margin
+              <div className="bg-zinc-950/90 border border-zinc-800/90 p-3.5 flex flex-col justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                  SOVEREIGN (CHOICE + FREE)
+                </span>
+                <div className="text-lg sm:text-xl font-extrabold font-mono text-cyan-400 mt-1">
+                  {formatNum(totalSovereignHours)}{' '}
+                  <span className="text-xs font-normal text-zinc-500">
+                    ({((totalSovereignHours / wakingHoursRemaining) * 100).toFixed(0)}% WAKING)
+                  </span>
                 </div>
+              </div>
+
+              <div className="bg-zinc-950/90 border border-zinc-800/90 p-3.5 flex flex-col justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                  WORKDAY MARGIN NOW
+                </span>
                 <div
-                  className={`text-xl font-black font-mono mt-1 ${
-                    sim.dailyAudit.workdayFree >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  className={`text-lg sm:text-xl font-extrabold font-mono mt-1 ${
+                    sim.dailyAudit.workdayFree >= 0 ? 'text-zinc-100' : 'text-red-400'
                   }`}
                 >
-                  {sim.dailyAudit.workdayFree >= 0 ? `+${sim.dailyAudit.workdayFree.toFixed(1)}` : sim.dailyAudit.workdayFree.toFixed(1)}{' '}
-                  <span className="text-xs font-normal text-gray-500">hrs/day</span>
+                  {sim.dailyAudit.workdayFree >= 0
+                    ? `+${sim.dailyAudit.workdayFree.toFixed(1)}H / DAY`
+                    : `${sim.dailyAudit.workdayFree.toFixed(1)}H DEFICIT`}
                 </div>
-                <div className="text-[11px] text-gray-500 mt-0.5">
-                  Weekend: {sim.dailyAudit.weekendFree >= 0 ? `+${sim.dailyAudit.weekendFree.toFixed(1)}` : sim.dailyAudit.weekendFree.toFixed(1)}h unallocated
+              </div>
+
+              <div className="bg-zinc-950/90 border border-zinc-800/90 p-3.5 flex flex-col justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                  OFF-DAY MARGIN NOW
+                </span>
+                <div
+                  className={`text-lg sm:text-xl font-extrabold font-mono mt-1 ${
+                    sim.dailyAudit.weekendFree >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}
+                >
+                  {sim.dailyAudit.weekendFree >= 0
+                    ? `+${sim.dailyAudit.weekendFree.toFixed(1)}H / DAY`
+                    : `${sim.dailyAudit.weekendFree.toFixed(1)}H DEFICIT`}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Multi-View Visualization Suite */}
-        <div className="bg-gray-900/40 rounded-3xl p-6 border border-gray-800/80 space-y-6">
-          {/* View Switcher Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('breakdown')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-                  activeTab === 'breakdown'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'bg-gray-800/70 text-gray-400 hover:text-white'
-                }`}
-              >
-                <PieChartIcon className="w-4 h-4" />
-                Lifetime Ledger
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('timeline')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-                  activeTab === 'timeline'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'bg-gray-800/70 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Layers className="w-4 h-4" />
-                Age-by-Age Phase Curve
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('weeks')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-                  activeTab === 'weeks'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'bg-gray-800/70 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Grid className="w-4 h-4" />
-                Memento Mori Grid
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('daily')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
-                  activeTab === 'daily'
-                    ? 'bg-white text-black shadow-lg'
-                    : 'bg-gray-800/70 text-gray-400 hover:text-white'
-                }`}
-              >
-                <Sun className="w-4 h-4" />
-                24-Hour Daily Audit
-              </button>
+        {/* ============================================================================
+            3. SYMMETRICAL 4-PILLAR TELEMETRY RIBBON
+           ============================================================================ */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            {
+              code: 'I // PAST',
+              label: 'HOURS EXPENDED',
+              val: `${formatNum(sim.hoursLived)} HRS`,
+              sub: `${state.currentAge} SOLAR YEARS LIVED`,
+              accent: 'border-zinc-700',
+            },
+            {
+              code: 'II // FUTURE',
+              label: 'REMAINING WAKING HOURS',
+              val: `${formatNum(wakingHoursRemaining)} HRS`,
+              sub: `EXCLUDES ${formatNum(sim.totals.sleep)}H SLEEP`,
+              accent: 'border-blue-800/80',
+            },
+            {
+              code: 'III // VITALITY',
+              label: 'GOLDEN RETIREMENT WINDOW',
+              val: `${Math.max(0, sim.actuarial.healthspanAge - Math.max(state.currentAge, state.retirementAge))} YEARS`,
+              sub: `AGE ${Math.max(state.currentAge, state.retirementAge)} → ${sim.actuarial.healthspanAge} IN PEAK HEALTH`,
+              accent: 'border-emerald-800/80',
+            },
+            {
+              code: 'IV // ENTROPY',
+              label: 'FRICTION TAX ON WAKING LIFE',
+              val: `${((frictionHours / wakingHoursRemaining) * 100).toFixed(1)}%`,
+              sub: `${formatNum(frictionHours)} HRS (${(frictionHours / HOURS_PER_YEAR).toFixed(1)} YEARS)`,
+              accent: 'border-red-900/80',
+            },
+          ].map((pillar, i) => (
+            <div
+              key={i}
+              className={`relative bg-[#090a0f] border ${pillar.accent} p-4 flex flex-col justify-between`}
+            >
+              <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500 uppercase tracking-widest">
+                <span>{pillar.code}</span>
+                <span className="w-1.5 h-1.5 rotate-45 bg-zinc-600" />
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-white my-1 tracking-tight">
+                {pillar.val}
+              </div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-zinc-400">
+                {pillar.label} <span className="text-zinc-600">//</span> {pillar.sub}
+              </div>
             </div>
+          ))}
+        </div>
 
-            <div className="text-xs text-gray-400 font-mono">
-              Waking Hours Remaining: <strong className="text-white">{formatNum(wakingHoursRemaining)} hrs</strong>
-            </div>
+        {/* ============================================================================
+            4. SYMMETRICAL OBSERVATORY (4-TAB VISUALIZATION SUITE)
+           ============================================================================ */}
+        <div className="relative bg-[#090a0f] border border-zinc-800 p-6 md:p-8 space-y-8">
+          <CornerReticles color="border-zinc-600" />
+
+          {/* Symmetrical 4-Column Tab Switcher */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 border-b border-zinc-800 pb-6">
+            {[
+              { id: 'breakdown', code: 'I', label: 'LIFETIME LEDGER', icon: PieChartIcon },
+              { id: 'timeline', code: 'II', label: 'PHASE TRAJECTORY', icon: Layers },
+              { id: 'weeks', code: 'III', label: 'MEMENTO MORI MATRIX', icon: Grid },
+              { id: 'daily', code: 'IV', label: 'DIURNAL 24H AUDIT', icon: Sun },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className={`py-3 px-4 border font-mono text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-2.5 transition-all ${
+                    isActive
+                      ? 'bg-white text-black border-white font-extrabold shadow-[0_0_25px_rgba(255,255,255,0.15)]'
+                      : 'bg-zinc-950/80 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>
+                    <span className={isActive ? 'text-red-600 mr-1' : 'text-zinc-600 mr-1'}>{tab.code}.</span>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* TAB 1: LIFETIME BREAKDOWN (DONUT + LEDGER) */}
+          {/* TAB I: LIFETIME LEDGER (6 COLS CHART + PILLARS | 6 COLS RANKED TABLE) */}
           {activeTab === 'breakdown' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              <div className="h-[340px] lg:col-span-5 relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={88}
-                      outerRadius={138}
-                      paddingAngle={1.5}
-                      dataKey="hours"
-                      stroke="none"
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => [
-                        `${formatNum(value)} hrs (${(value / HOURS_PER_YEAR).toFixed(1)} yrs)`,
-                        'Remaining',
-                      ]}
-                      contentStyle={{
-                        backgroundColor: '#090d16',
-                        borderColor: '#374151',
-                        borderRadius: '0.75rem',
-                        color: '#f3f4f6',
-                      }}
-                      itemStyle={{ color: '#e5e7eb' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-4xl font-black text-white font-mono">{sim.yearsRemaining}</span>
-                  <span className="text-[11px] text-gray-400 uppercase tracking-widest font-bold">Years Left</span>
-                  <span className="text-[11px] text-emerald-400 font-mono mt-0.5">
-                    {Math.max(0, sim.actuarial.healthspanAge - state.currentAge)}y healthy
-                  </span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* Left 6 Cols: Donut + 3 Macro Category Blocks */}
+              <div className="lg:col-span-6 flex flex-col justify-between bg-zinc-950/60 border border-zinc-800/80 p-6">
+                <div className="h-[300px] relative">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={86}
+                        outerRadius={132}
+                        paddingAngle={1.5}
+                        dataKey="hours"
+                        stroke="none"
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [
+                          `${formatNum(value)} HRS (${(value / HOURS_PER_YEAR).toFixed(1)}Y)`,
+                          'ALLOCATION',
+                        ]}
+                        contentStyle={{
+                          backgroundColor: '#050507',
+                          borderColor: '#3f3f46',
+                          borderRadius: '0px',
+                          color: '#f4f4f5',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontSize: '12px',
+                        }}
+                        itemStyle={{ color: '#e4e4e7' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Axial Center Readout */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-zinc-500">REMAINING</span>
+                    <span className="text-4xl font-black text-white font-mono my-0.5">{sim.yearsRemaining}Y</span>
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400">
+                      {formatNum(sim.totalRemainingHours)} HRS
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3 Symmetrical Macro-Pillar Summary Cards */}
+                <div className="grid grid-cols-3 gap-2.5 pt-4 border-t border-zinc-800/80 text-center font-mono">
+                  <div className="bg-zinc-900/60 border border-zinc-800 p-2.5">
+                    <div className="text-[10px] text-zinc-500 uppercase">I. INEVITABLE</div>
+                    <div className="text-sm font-bold text-white mt-0.5">
+                      {(inevitableHours / HOURS_PER_YEAR).toFixed(1)}Y
+                    </div>
+                    <div className="text-[10px] text-zinc-500">
+                      {((inevitableHours / sim.totalRemainingHours) * 100).toFixed(0)}% TOTAL
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/60 border border-zinc-800 p-2.5">
+                    <div className="text-[10px] text-zinc-500 uppercase">II. FRICTION</div>
+                    <div className="text-sm font-bold text-red-400 mt-0.5">
+                      {(frictionHours / HOURS_PER_YEAR).toFixed(1)}Y
+                    </div>
+                    <div className="text-[10px] text-zinc-500">
+                      {((frictionHours / sim.totalRemainingHours) * 100).toFixed(0)}% TOTAL
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/60 border border-zinc-800 p-2.5">
+                    <div className="text-[10px] text-zinc-500 uppercase">III. SOVEREIGN</div>
+                    <div className="text-sm font-bold text-emerald-400 mt-0.5">
+                      {(totalSovereignHours / HOURS_PER_YEAR).toFixed(1)}Y
+                    </div>
+                    <div className="text-[10px] text-zinc-500">
+                      {((totalSovereignHours / sim.totalRemainingHours) * 100).toFixed(0)}% TOTAL
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="lg:col-span-7 space-y-2 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="grid grid-cols-12 text-[11px] font-bold text-gray-500 uppercase tracking-wider pb-2 border-b border-gray-800 sticky top-0 bg-[#0c0d12] z-10">
-                  <div className="col-span-5">Category</div>
-                  <div className="col-span-2 text-right">Total %</div>
-                  <div className="col-span-2 text-right">Waking %</div>
-                  <div className="col-span-3 text-right">Hours (Years)</div>
+              {/* Right 6 Cols: Architectural Ledger with Proportional Bars */}
+              <div className="lg:col-span-6 bg-zinc-950/60 border border-zinc-800/80 p-6 flex flex-col justify-between">
+                <div className="grid grid-cols-12 text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest pb-3 border-b border-zinc-800">
+                  <div className="col-span-5">ALLOCATION VECTOR</div>
+                  <div className="col-span-2 text-right">TOTAL</div>
+                  <div className="col-span-2 text-right">WAKING</div>
+                  <div className="col-span-3 text-right">DURATION</div>
                 </div>
-                {[...chartData]
-                  .sort((a, b) => b.hours - a.hours)
-                  .map((item) => {
-                    const totalPct =
-                      sim.totalRemainingHours > 0 ? ((item.hours / sim.totalRemainingHours) * 100).toFixed(1) : '0.0';
-                    const wakingPct =
-                      item.id === 'sleep'
-                        ? '—'
-                        : `${((item.hours / wakingHoursRemaining) * 100).toFixed(1)}%`;
-                    return (
-                      <div
-                        key={item.id}
-                        className="grid grid-cols-12 items-center gap-2 py-2 px-2.5 hover:bg-gray-800/40 rounded-lg transition-colors text-sm"
-                      >
-                        <div className="col-span-5 flex items-center gap-2.5 min-w-0">
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <span className="font-medium text-gray-200 truncate">{item.name}</span>
+
+                <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-2 custom-scrollbar my-2">
+                  {[...chartData]
+                    .sort((a, b) => b.hours - a.hours)
+                    .map((item) => {
+                      const totalPct =
+                        sim.totalRemainingHours > 0 ? (item.hours / sim.totalRemainingHours) * 100 : 0;
+                      const wakingPct =
+                        item.id === 'sleep'
+                          ? '—'
+                          : `${((item.hours / wakingHoursRemaining) * 100).toFixed(1)}%`;
+                      return (
+                        <div key={item.id} className="space-y-1 py-1.5 border-b border-zinc-900/90">
+                          <div className="grid grid-cols-12 items-center gap-2 text-xs font-mono">
+                            <div className="col-span-5 flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2 h-2 rotate-45 flex-shrink-0"
+                                style={{ backgroundColor: item.color }}
+                              />
+                              <span className="font-sans font-medium text-zinc-200 truncate">{item.name}</span>
+                            </div>
+                            <div className="col-span-2 text-right text-zinc-400">{totalPct.toFixed(1)}%</div>
+                            <div className="col-span-2 text-right text-cyan-400/90">{wakingPct}</div>
+                            <div className="col-span-3 text-right text-zinc-100 font-bold">
+                              {formatNum(item.hours)}{' '}
+                              <span className="text-zinc-500 font-normal">
+                                ({(item.hours / HOURS_PER_YEAR).toFixed(1)}Y)
+                              </span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-zinc-900 h-1 overflow-hidden">
+                            <div
+                              className="h-full"
+                              style={{ width: `${Math.min(100, totalPct)}%`, backgroundColor: item.color }}
+                            />
+                          </div>
                         </div>
-                        <div className="col-span-2 text-right font-mono text-xs text-gray-400">{totalPct}%</div>
-                        <div className="col-span-2 text-right font-mono text-xs text-cyan-400/80">{wakingPct}</div>
-                        <div className="col-span-3 text-right font-mono text-xs text-gray-200">
-                          {formatNum(item.hours)}{' '}
-                          <span className="text-gray-500">({(item.hours / HOURS_PER_YEAR).toFixed(1)}y)</span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: AGE-BY-AGE PHASE CURVE */}
+          {/* TAB II: AGE-BY-AGE PHASE TRAJECTORY */}
           {activeTab === 'timeline' && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Daily 24-Hour Allocation by Age ({state.currentAge} → {sim.lifespan})
+                  <h3 className="text-sm font-mono font-bold text-white uppercase tracking-[0.15em]">
+                    DIURNAL 24-HOUR PARTITION ACROSS REMAINING AGES ({state.currentAge}Y → {sim.lifespan}Y)
                   </h3>
-                  <p className="text-xs text-gray-400">
-                    Notice how the career & commuting block drops at retirement ({state.retirementAge}), opening the Golden Window before late-life morbidity ({sim.actuarial.healthspanAge}+).
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Observe the structural liberation at Career Exit (Age {state.retirementAge}) and the onset of late-life fragility (Age {sim.actuarial.healthspanAge}+).
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 text-blue-400"><span className="w-2.5 h-2.5 rounded-sm bg-blue-700" />Sleep</span>
-                  <span className="flex items-center gap-1.5 text-teal-400"><span className="w-2.5 h-2.5 rounded-sm bg-teal-700" />Routines</span>
-                  <span className="flex items-center gap-1.5 text-orange-400"><span className="w-2.5 h-2.5 rounded-sm bg-orange-600" />Work/School/Commute</span>
-                  <span className="flex items-center gap-1.5 text-pink-400"><span className="w-2.5 h-2.5 rounded-sm bg-pink-600" />Caregiving</span>
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="w-2.5 h-2.5 rounded-sm bg-slate-600" />Friction/Sick</span>
-                  <span className="flex items-center gap-1.5 text-cyan-400"><span className="w-2.5 h-2.5 rounded-sm bg-cyan-600" />Choice</span>
-                  <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" />Free Time</span>
+
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono uppercase">
+                  <span className="flex items-center gap-1.5 text-blue-400"><span className="w-2 h-2 rotate-45 bg-blue-600" />SLEEP</span>
+                  <span className="flex items-center gap-1.5 text-teal-400"><span className="w-2 h-2 rotate-45 bg-teal-600" />RITUALS</span>
+                  <span className="flex items-center gap-1.5 text-orange-400"><span className="w-2 h-2 rotate-45 bg-orange-600" />LABOR</span>
+                  <span className="flex items-center gap-1.5 text-pink-400"><span className="w-2 h-2 rotate-45 bg-pink-600" />LINEAGE</span>
+                  <span className="flex items-center gap-1.5 text-zinc-400"><span className="w-2 h-2 rotate-45 bg-zinc-500" />FRICTION</span>
+                  <span className="flex items-center gap-1.5 text-cyan-400"><span className="w-2 h-2 rotate-45 bg-cyan-500" />CHOICE</span>
+                  <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-2 h-2 rotate-45 bg-emerald-500" />FREE</span>
                 </div>
               </div>
 
-              <div className="h-[340px] w-full">
+              <div className="h-[350px] w-full bg-zinc-950/60 border border-zinc-800/80 p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={sim.yearlyTimeline} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                    <CartesianGrid strokeDasharray="2 2" stroke="#18181b" />
                     <XAxis
                       dataKey="age"
-                      stroke="#6b7280"
-                      tick={{ fontSize: 12 }}
-                      label={{ value: 'Age (Years)', position: 'insideBottomRight', offset: -5, fill: '#9ca3af', fontSize: 11 }}
+                      stroke="#71717a"
+                      tick={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
                     />
                     <YAxis
-                      stroke="#6b7280"
-                      tick={{ fontSize: 12 }}
+                      stroke="#71717a"
+                      tick={{ fontSize: 11, fontFamily: 'JetBrains Mono, monospace' }}
                       domain={[0, 24]}
-                      label={{ value: 'Hours / Day', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 11 }}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#090d16',
-                        borderColor: '#374151',
-                        borderRadius: '0.75rem',
-                        fontSize: '12px',
+                        backgroundColor: '#050507',
+                        borderColor: '#3f3f46',
+                        borderRadius: '0px',
+                        fontFamily: 'JetBrains Mono, monospace',
+                        fontSize: '11px',
                       }}
-                      formatter={(val: number, name: string) => [`${val} hrs/day`, name]}
+                      formatter={(val: number, name: string) => [`${val} HRS/DAY`, name.toUpperCase()]}
                       labelFormatter={(age) => {
                         const row = sim.yearlyTimeline.find((r) => r.age === age);
-                        return `Age ${age} — Phase: ${row?.phase || ''}`;
+                        return `AGE ${age} // PHASE: ${row?.phase.toUpperCase() || ''}`;
                       }}
                     />
-                    <Area type="monotone" dataKey="Sleep" stackId="1" stroke="#1d4ed8" fill="#1d4ed8" />
-                    <Area type="monotone" dataKey="Routine" stackId="1" stroke="#0f766e" fill="#0f766e" />
+                    <Area type="monotone" dataKey="Sleep" stackId="1" stroke="#2563eb" fill="#1d4ed8" />
+                    <Area type="monotone" dataKey="Routine" stackId="1" stroke="#0d9488" fill="#0f766e" />
                     <Area type="monotone" dataKey="WorkAndSchool" stackId="1" stroke="#ea580c" fill="#c2410c" />
-                    <Area type="monotone" dataKey="Caregiving" stackId="1" stroke="#db2777" fill="#db2777" />
+                    <Area type="monotone" dataKey="Caregiving" stackId="1" stroke="#db2777" fill="#be185d" />
                     <Area type="monotone" dataKey="Friction" stackId="1" stroke="#64748b" fill="#475569" />
-                    <Area type="monotone" dataKey="Intentional" stackId="1" stroke="#0891b2" fill="#0891b2" />
-                    <Area type="monotone" dataKey="FreeTime" stackId="1" stroke="#22c55e" fill="#22c55e" />
+                    <Area type="monotone" dataKey="Intentional" stackId="1" stroke="#06b6d4" fill="#0891b2" />
+                    <Area type="monotone" dataKey="FreeTime" stackId="1" stroke="#22c55e" fill="#16a34a" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
           )}
 
-          {/* TAB 3: MEMENTO MORI LIFE GRID (YEARS & WEEKS) */}
+          {/* TAB III: MEMENTO MORI MATRIX (SYMMETRICAL 20-COL ARCHITECTURAL GRID) */}
           {activeTab === 'weeks' && (
-            <div className="space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4">
                 <div>
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Memento Mori — Your {sim.lifespan} Years ({formatNum(Math.round(sim.lifespan * 52.18))} Weeks)
+                  <h3 className="text-sm font-mono font-bold text-white uppercase tracking-[0.15em]">
+                    MEMENTO MORI ARCHITECTURAL MATRIX // {sim.lifespan} SOLAR YEARS ({formatNum(Math.round(sim.lifespan * 52.18))} WEEKS)
                   </h3>
-                  <p className="text-xs text-gray-400">
-                    Each block represents 1 year (52 weeks) of life. Hover over any year to inspect its phase and discretionary freedom.
+                  <p className="text-xs text-zinc-400 mt-1">
+                    Each monolith represents one solar year (52 weeks). Hover any coordinate to inspect its phase and daily sovereignty.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-xs">
-                  <span className="flex items-center gap-1.5 text-gray-400">
-                    <span className="w-3 h-3 rounded bg-gray-800 border border-gray-700" /> Spent ({state.currentAge}y)
+                <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono uppercase">
+                  <span className="flex items-center gap-1.5 text-zinc-500">
+                    <span className="w-3 h-3 bg-zinc-900 border border-zinc-700" /> EXPENDED ({state.currentAge}Y)
                   </span>
-                  <span className="flex items-center gap-1.5 text-orange-300">
-                    <span className="w-3 h-3 rounded bg-orange-600/80" /> Working Phase
+                  <span className="flex items-center gap-1.5 text-orange-400">
+                    <span className="w-3 h-3 bg-orange-950/90 border border-orange-500" /> LABOR PHASE
                   </span>
-                  <span className="flex items-center gap-1.5 text-emerald-300">
-                    <span className="w-3 h-3 rounded bg-emerald-500" /> Golden Retirement (Healthy)
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-3 h-3 bg-emerald-950/90 border border-emerald-400" /> GOLDEN AUTONOMY
                   </span>
-                  <span className="flex items-center gap-1.5 text-red-300">
-                    <span className="w-3 h-3 rounded bg-red-800/80" /> Late-Life Fragility
+                  <span className="flex items-center gap-1.5 text-red-400">
+                    <span className="w-3 h-3 bg-red-950/90 border border-red-600" /> TWILIGHT FRAGILITY
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-[repeat(20,minmax(0,1fr))] gap-2 pt-2">
+              <div className="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-[repeat(20,minmax(0,1fr))] gap-1.5">
                 {Array.from({ length: sim.lifespan }, (_, age) => {
                   const isPast = age < state.currentAge;
+                  const isCurrent = age === state.currentAge;
                   const futureRow = sim.yearlyTimeline.find((r) => r.age === age);
-                  let bgClass = 'bg-gray-800/60 border-gray-700/50 text-gray-600';
-                  if (!isPast && futureRow) {
+
+                  let cellStyle = 'bg-zinc-950/80 border-zinc-800/80 text-zinc-600';
+                  if (isCurrent) {
+                    cellStyle = 'bg-white text-black border-white font-black shadow-[0_0_15px_rgba(255,255,255,0.6)]';
+                  } else if (!isPast && futureRow) {
                     if (!futureRow.isHealthy) {
-                      bgClass = 'bg-red-900/70 border-red-700/60 text-red-200';
+                      cellStyle = 'bg-red-950/60 border-red-700/70 text-red-200 hover:bg-red-900/80';
                     } else if (age < state.retirementAge) {
-                      bgClass = 'bg-orange-600/75 border-orange-500/60 text-orange-100';
+                      cellStyle = 'bg-orange-950/60 border-orange-600/70 text-orange-200 hover:bg-orange-900/80';
                     } else {
-                      bgClass = 'bg-emerald-600/80 border-emerald-400/70 text-emerald-50';
+                      cellStyle = 'bg-emerald-950/60 border-emerald-500/70 text-emerald-200 hover:bg-emerald-900/80';
                     }
                   }
+
                   return (
                     <div
                       key={age}
                       onMouseEnter={() => setHoveredAge(age)}
                       onMouseLeave={() => setHoveredAge(null)}
-                      className={`h-9 rounded-lg border flex flex-col items-center justify-center cursor-pointer transition-transform hover:scale-110 font-mono text-xs font-bold ${bgClass}`}
+                      className={`h-9 border flex items-center justify-center cursor-crosshair transition-all font-mono text-xs ${cellStyle}`}
                     >
                       <span>{age}</span>
                     </div>
@@ -1382,97 +1620,110 @@ export default function LifespanApp() {
                 })}
               </div>
 
-              {/* Hovered Year Inspector */}
-              <div className="bg-gray-950/70 border border-gray-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-xs font-mono">
-                {hoveredAge !== null ? (
-                  hoveredAge < state.currentAge ? (
-                    <div className="text-gray-400">
-                      <strong className="text-white">Age {hoveredAge}</strong> (Weeks {hoveredAge * 52}–{(hoveredAge + 1) * 52}):{' '}
-                      Already lived. Part of the {formatNum(sim.hoursLived)} hours behind you.
-                    </div>
-                  ) : (
-                    (() => {
-                      const row = sim.yearlyTimeline.find((r) => r.age === hoveredAge);
-                      if (!row) return null;
-                      return (
-                        <div className="flex flex-wrap items-center gap-6 text-gray-300">
-                          <span>
-                            <strong className="text-white">Age {hoveredAge}</strong> ({row.phase})
-                          </span>
-                          <span>Work/Commute: <strong>{row.WorkAndSchool}h/d</strong></span>
-                          <span>Caregiving: <strong>{row.Caregiving}h/d</strong></span>
-                          <span>Intentional Choice: <strong className="text-cyan-400">{row.Intentional}h/d</strong></span>
-                          <span>Unallocated Free: <strong className="text-emerald-400">{row.FreeTime}h/d</strong></span>
-                        </div>
-                      );
-                    })()
-                  )
-                ) : (
-                  <div className="text-gray-500">
-                    Hover over any year block above to inspect that year&apos;s daily breakdown and life phase.
-                  </div>
-                )}
+              {/* Symmetrical 4-Column Coordinate Inspector */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-zinc-950 border border-zinc-800 p-4 font-mono text-xs">
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">COORDINATE</span>
+                  <strong className="text-white text-sm">
+                    AGE {inspectedAge} (WEEKS {inspectedAge * 52}–{(inspectedAge + 1) * 52})
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">LIFE STAGE</span>
+                  <strong className="text-zinc-200 text-sm uppercase">
+                    {inspectedAge < state.currentAge ? 'EXPENDED PAST' : inspectedRow?.phase || 'ACTIVE'}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">LABOR & FRICTION</span>
+                  <strong className="text-orange-400 text-sm">
+                    {inspectedAge < state.currentAge
+                      ? 'HISTORICAL'
+                      : `${((inspectedRow?.WorkAndSchool || 0) + (inspectedRow?.Friction || 0)).toFixed(1)} HRS/DAY`}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-zinc-500 block uppercase">SOVEREIGN AUTONOMY</span>
+                  <strong className="text-emerald-400 text-sm">
+                    {inspectedAge < state.currentAge
+                      ? 'EXPENDED'
+                      : `${((inspectedRow?.Intentional || 0) + (inspectedRow?.FreeTime || 0)).toFixed(1)} HRS/DAY`}
+                  </strong>
+                </div>
               </div>
             </div>
           )}
 
-          {/* TAB 4: 24-HOUR DAILY AUDIT */}
+          {/* TAB IV: DIURNAL 24H AUDIT (3 SYMMETRICAL MONOLITH CARDS) */}
           {activeTab === 'daily' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
                 {
+                  code: 'I // LABOR DAY',
                   title: 'Current Onsite Workday',
-                  subtitle: `Based on ${state.workDaysPerWeek} workdays/wk`,
+                  subtitle: `Normalized across ${state.workDaysPerWeek} workdays/wk`,
                   used: sim.dailyAudit.workdayUsed,
                   free: sim.dailyAudit.workdayFree,
                 },
                 {
+                  code: 'II // SABBATH DAY',
                   title: 'Current Weekend / Off-Day',
-                  subtitle: 'No career work or commuting',
+                  subtitle: 'Zero career labor or commuting tax',
                   used: sim.dailyAudit.weekendUsed,
                   free: sim.dailyAudit.weekendFree,
                 },
                 {
-                  title: `Post-Retirement Day (Age ${state.retirementAge}+)`,
-                  subtitle: state.encoreWorkHrsPerWeek > 0 ? `Includes ${state.encoreWorkHrsPerWeek}h/wk encore work` : 'Zero career obligations',
+                  code: `III // ENCORE DAY (AGE ${state.retirementAge}+)`,
+                  title: 'Post-Retirement Equilibrium',
+                  subtitle:
+                    state.encoreWorkHrsPerWeek > 0
+                      ? `Includes ${state.encoreWorkHrsPerWeek}h/wk encore craft`
+                      : 'Complete liberation from career labor',
                   used: sim.dailyAudit.retirementUsed,
                   free: sim.dailyAudit.retirementFree,
                 },
               ].map((card, idx) => (
-                <div key={idx} className="bg-gray-950/60 border border-gray-800 rounded-2xl p-5 space-y-4">
+                <div
+                  key={idx}
+                  className="relative bg-zinc-950/90 border border-zinc-800 p-6 flex flex-col justify-between space-y-5"
+                >
+                  <CornerReticles />
                   <div>
-                    <h4 className="font-bold text-white text-base">{card.title}</h4>
-                    <p className="text-xs text-gray-500">{card.subtitle}</p>
+                    <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-500 mb-1">
+                      {card.code}
+                    </div>
+                    <h4 className="font-bold text-white text-lg tracking-wide">{card.title}</h4>
+                    <p className="text-xs text-zinc-500 mt-0.5">{card.subtitle}</p>
                   </div>
 
-                  <div className="flex items-baseline justify-between font-mono">
-                    <div>
-                      <span className="text-xs text-gray-500 block">Committed</span>
-                      <span className="text-2xl font-bold text-gray-200">{card.used.toFixed(1)}h</span>
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-900 font-mono">
+                    <div className="bg-zinc-900/60 border border-zinc-800 p-3">
+                      <span className="text-[10px] text-zinc-500 block uppercase">COMMITTED</span>
+                      <span className="text-2xl font-bold text-zinc-100">{card.used.toFixed(1)}H</span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs text-gray-500 block">Unallocated</span>
+                    <div className="bg-zinc-900/60 border border-zinc-800 p-3 text-right">
+                      <span className="text-[10px] text-zinc-500 block uppercase">UNALLOCATED</span>
                       <span
                         className={`text-2xl font-black ${
                           card.free >= 0 ? 'text-emerald-400' : 'text-red-500'
                         }`}
                       >
-                        {card.free >= 0 ? `+${card.free.toFixed(1)}h` : `${card.free.toFixed(1)}h`}
+                        {card.free >= 0 ? `+${card.free.toFixed(1)}H` : `${card.free.toFixed(1)}H`}
                       </span>
                     </div>
                   </div>
 
-                  <div className="w-full bg-gray-800 h-3 rounded-full overflow-hidden flex">
+                  <div className="w-full bg-zinc-900 h-2 border border-zinc-800 overflow-hidden flex">
                     <div
-                      className={`h-full ${card.free >= 0 ? 'bg-cyan-500' : 'bg-red-600'}`}
+                      className={`h-full ${card.free >= 0 ? 'bg-emerald-500' : 'bg-red-600'}`}
                       style={{ width: `${Math.min(100, (card.used / 24) * 100)}%` }}
                     />
                   </div>
 
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-zinc-400 font-mono leading-relaxed">
                     {card.free >= 0
-                      ? `Leaves ${card.free.toFixed(1)} hrs/day of unscripted breathing room on top of your scheduled leisure.`
-                      : `Overbooked by ${Math.abs(card.free).toFixed(1)} hrs/day! Something (usually sleep or leisure) is being cannibalized.`}
+                      ? `STATUS: SOLVENT // ${card.free.toFixed(1)} hrs/day of unscripted margin remains beyond your scheduled leisure.`
+                      : `STATUS: INSOLVENT // Overbooked by ${Math.abs(card.free).toFixed(1)} hrs/day. Sleep or sanity is being cannibalized.`}
                   </p>
                 </div>
               ))}
@@ -1481,64 +1732,62 @@ export default function LifespanApp() {
         </div>
 
         {/* ============================================================================
-            CONTROLS SECTIONS
+            5. SYMMETRICAL 3x3 & 1x3 CONTROL MATRICES
            ============================================================================ */}
-        <div className="space-y-12">
+        <div className="space-y-16 pt-4">
           
-          {/* SECTION 01: THE INEVITABLE & LIFE PHASES */}
+          {/* SECTION I: THE INEVITABLE (EXACT 3x3 = 9 INSTRUMENT CARDS) */}
           <section>
-            <div className="mb-6 border-b border-gray-800 pb-2 flex flex-wrap justify-between items-end gap-2">
-              <div>
-                <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                  <span className="text-gray-600">01.</span> Foundations & Life Phases
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Biological necessities, career horizons, education, and active family/caregiving windows.
-                </p>
-              </div>
-              <span className="text-xs font-mono text-gray-500">
-                Click any <span className="text-gray-300 bg-gray-800 px-1.5 py-0.5 rounded">ATUS Avg</span> badge to apply empirical US benchmarks
-              </span>
-            </div>
+            <AxialSectionHeader
+              roman="I"
+              title="The Inevitable"
+              subtitle="Biological imperatives, career horizons, academic foundations, and lineage caregiving windows."
+              accentColor="#3b82f6"
+              totalHours={inevitableHours}
+              wakingPct={(( (inevitableHours - sim.totals.sleep) / wakingHoursRemaining) * 100).toFixed(1)}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <SliderControl
-                label="Sleep & Rest"
-                subtitle="Biological recovery (7–8.5h optimal)"
+                indexCode="I.01"
+                label="Sleep & Nocturnal Rest"
+                subtitle="Biological recovery (7.0–8.5h optimal)"
                 icon={Moon}
-                colorClass="text-blue-500"
+                colorClass="text-blue-400"
                 accentHex="#3b82f6"
                 value={state.sleepHrsPerDay}
                 onChange={(v) => updateField('sleepHrsPerDay', v)}
                 min={4}
                 max={11}
                 step={0.25}
-                unit="hrs/day"
+                unit="hrs/d"
                 hours={sim.totals.sleep}
                 benchmark={ATUS_BENCHMARKS.sleep}
               />
 
               <SliderControl
-                label="Daily Routines"
-                subtitle="Cooking, eating, showering, basic chores"
+                indexCode="I.02"
+                label="Daily Maintenance"
+                subtitle="Cooking, dining, hygiene & basic upkeep"
                 icon={Coffee}
-                colorClass="text-teal-500"
+                colorClass="text-teal-400"
                 accentHex="#14b8a6"
                 value={state.routineHrsPerDay}
                 onChange={(v) => updateField('routineHrsPerDay', v)}
                 min={0.5}
                 max={6}
                 step={0.25}
-                unit="hrs/day"
+                unit="hrs/d"
                 hours={sim.totals.routine}
                 benchmark={ATUS_BENCHMARKS.routine}
               />
 
               <SliderControl
-                label="Career Work Hours"
-                subtitle={`Active until retirement (Age ${state.retirementAge})`}
+                indexCode="I.03"
+                label="Primary Career Labor"
+                subtitle={`Active until Career Exit (Age ${state.retirementAge})`}
                 icon={Briefcase}
-                colorClass="text-orange-500"
+                colorClass="text-orange-400"
                 accentHex="#f97316"
                 value={state.workHrsPerWeek}
                 onChange={(v) => updateField('workHrsPerWeek', v)}
@@ -1551,10 +1800,11 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="Work Weeks / Year"
-                subtitle="Accounts for PTO, holidays & sabbaticals"
+                indexCode="I.04"
+                label="Active Working Weeks"
+                subtitle="Annual workweeks minus PTO & sabbaticals"
                 icon={Calendar}
-                colorClass="text-orange-400"
+                colorClass="text-orange-300"
                 accentHex="#fb923c"
                 value={state.workWeeksPerYear}
                 onChange={(v) => updateField('workWeeksPerYear', v)}
@@ -1563,14 +1813,16 @@ export default function LifespanApp() {
                 step={1}
                 unit="wks/yr"
                 hours={sim.totals.work}
-                showHoursSummary={false}
+                benchmark={ATUS_BENCHMARKS.workWeeks}
+                secondaryNote={`${52 - state.workWeeksPerYear} WKS PTO / YR`}
               />
 
               <SliderControl
-                label="Encore / Retirement Work"
-                subtitle={`Part-time/passion work after Age ${state.retirementAge}`}
+                indexCode="I.05"
+                label="Encore / Post-Exit Craft"
+                subtitle={`Part-time passion work after Age ${state.retirementAge}`}
                 icon={Briefcase}
-                colorClass="text-amber-500"
+                colorClass="text-amber-400"
                 accentHex="#f59e0b"
                 value={state.encoreWorkHrsPerWeek}
                 onChange={(v) => updateField('encoreWorkHrsPerWeek', v)}
@@ -1586,10 +1838,11 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="Caregiving / Parenting"
-                subtitle="Dedicated childcare or eldercare hours"
+                indexCode="I.06"
+                label="Lineage & Caregiving"
+                subtitle="Dedicated parenting or eldercare hours"
                 icon={Users}
-                colorClass="text-pink-500"
+                colorClass="text-pink-400"
                 accentHex="#ec4899"
                 value={state.caregivingHrsPerWeek}
                 onChange={(v) => updateField('caregivingHrsPerWeek', v)}
@@ -1602,10 +1855,11 @@ export default function LifespanApp() {
               />
 
               <SliderControl
+                indexCode="I.07"
                 label="Caregiving Window"
-                subtitle="Years of active caregiving remaining"
+                subtitle="Remaining years of active caregiving"
                 icon={Hourglass}
-                colorClass="text-pink-400"
+                colorClass="text-pink-300"
                 accentHex="#f472b6"
                 value={state.caregivingYearsRemaining}
                 onChange={(v) => updateField('caregivingYearsRemaining', v)}
@@ -1614,29 +1868,35 @@ export default function LifespanApp() {
                 step={1}
                 unit="years"
                 hours={sim.totals.caregiving}
-                showHoursSummary={false}
+                secondaryNote={
+                  state.caregivingYearsRemaining > 0
+                    ? `ACTIVE UNTIL AGE ${state.currentAge + state.caregivingYearsRemaining}`
+                    : 'PHASE INACTIVE'
+                }
               />
 
               <SliderControl
-                label="Higher Ed / Schooling"
-                subtitle="Classes + study (~190 days/yr)"
+                indexCode="I.08"
+                label="Academic Study"
+                subtitle="Lectures, research & coursework (190d/yr)"
                 icon={GraduationCap}
-                colorClass="text-purple-500"
+                colorClass="text-purple-400"
                 accentHex="#a855f7"
                 value={state.schoolHrsPerDay}
                 onChange={(v) => updateField('schoolHrsPerDay', v)}
                 min={0}
                 max={12}
                 step={0.5}
-                unit="hrs/day"
+                unit="hrs/d"
                 hours={sim.totals.school}
               />
 
               <SliderControl
-                label="Remaining School Years"
-                subtitle="Duration of degree or training program"
+                indexCode="I.09"
+                label="Academic Horizon"
+                subtitle="Remaining years of formal schooling"
                 icon={Hourglass}
-                colorClass="text-purple-400"
+                colorClass="text-purple-300"
                 accentHex="#c084fc"
                 value={state.schoolYearsRemaining}
                 onChange={(v) => updateField('schoolYearsRemaining', v)}
@@ -1645,58 +1905,83 @@ export default function LifespanApp() {
                 step={1}
                 unit="years"
                 hours={sim.totals.school}
-                showHoursSummary={false}
+                secondaryNote={
+                  state.schoolYearsRemaining > 0
+                    ? `GRADUATES AGE ${state.currentAge + state.schoolYearsRemaining}`
+                    : 'COMPLETED'
+                }
               />
             </div>
           </section>
 
-          {/* SECTION 02: THE FRICTION */}
+          {/* SECTION II: THE FRICTION (EXACT 3x3 = 9 INSTRUMENT CARDS) */}
           <section>
-            <div className="mb-6 border-b border-gray-800 pb-2">
-              <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                <span className="text-gray-600">02.</span> The Friction
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Hidden taxes on your waking hours: commuting (scaled strictly to onsite workdays), passive screen drift, illness, and bureaucracy.
-              </p>
-            </div>
+            <AxialSectionHeader
+              roman="II"
+              title="The Friction"
+              subtitle="Entropy and unseen taxes on waking consciousness: transit, algorithmic drift, morbidity, and bureaucracy."
+              accentColor="#ef4444"
+              totalHours={frictionHours}
+              wakingPct={((frictionHours / wakingHoursRemaining) * 100).toFixed(1)}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <SliderControl
+                indexCode="II.01"
                 label="Round-Trip Commute"
-                subtitle="Counted ONLY on onsite workdays"
+                subtitle="Applied strictly to onsite workdays"
                 icon={Car}
-                colorClass="text-slate-400"
+                colorClass="text-slate-300"
                 accentHex="#94a3b8"
                 value={state.commuteHrsPerWorkday}
                 onChange={(v) => updateField('commuteHrsPerWorkday', v)}
                 min={0}
                 max={4}
                 step={0.1}
-                unit="hrs/workday"
+                unit="hrs/d"
                 hours={sim.totals.commute}
                 benchmark={ATUS_BENCHMARKS.commute}
               />
 
               <SliderControl
-                label="Remote / WFH Share"
-                subtitle="% of workdays with zero commute"
-                icon={Car}
-                colorClass="text-slate-500"
+                indexCode="II.02"
+                label="Workdays Per Week"
+                subtitle="Weekly frequency of scheduled labor"
+                icon={Calendar}
+                colorClass="text-slate-400"
                 accentHex="#64748b"
+                value={state.workDaysPerWeek}
+                onChange={(v) => updateField('workDaysPerWeek', v)}
+                min={1}
+                max={7}
+                step={0.5}
+                unit="days/wk"
+                hours={sim.totals.commute}
+                benchmark={ATUS_BENCHMARKS.workDays}
+                secondaryNote={`${(state.workDaysPerWeek * (1 - state.remoteWorkPercent / 100)).toFixed(1)} ONSITE DAYS/WK`}
+              />
+
+              <SliderControl
+                indexCode="II.03"
+                label="Remote / WFH Autonomy"
+                subtitle="Percentage of workdays with zero transit"
+                icon={Car}
+                colorClass="text-slate-400"
+                accentHex="#475569"
                 value={state.remoteWorkPercent}
                 onChange={(v) => updateField('remoteWorkPercent', v)}
                 min={0}
                 max={100}
                 step={10}
-                unit="% remote"
+                unit="% wfh"
                 hours={sim.totals.commute}
-                showHoursSummary={false}
+                secondaryNote={`${100 - state.remoteWorkPercent}% ONSITE PRESENCE`}
               />
 
               <SliderControl
-                label="Passive Screen / Feed Drift"
-                subtitle="Unintentional scrolling & background TV"
+                indexCode="II.04"
+                label="Algorithmic / Screen Drift"
+                subtitle="Unintentional scrolling & passive feeds"
                 icon={Smartphone}
                 colorClass="text-indigo-400"
                 accentHex="#6366f1"
@@ -1705,14 +1990,15 @@ export default function LifespanApp() {
                 min={0}
                 max={8}
                 step={0.25}
-                unit="hrs/day"
+                unit="hrs/d"
                 hours={sim.totals.screen}
                 benchmark={ATUS_BENCHMARKS.screen}
               />
 
               <SliderControl
-                label="Acute Sickness / Down Days"
-                subtitle="Consumes waking hours only (+late-life curve)"
+                indexCode="II.05"
+                label="Acute Sickness & Morbidity"
+                subtitle="Waking down-days (+late-life fragility curve)"
                 icon={Thermometer}
                 colorClass="text-red-500"
                 accentHex="#ef4444"
@@ -1727,8 +2013,9 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="Life Admin, Errands & Bills"
-                subtitle="Paperwork, taxes, shopping, scheduling"
+                indexCode="II.06"
+                label="Life Admin & Bureaucracy"
+                subtitle="Taxes, errands, paperwork, logistics"
                 icon={PhoneCall}
                 colorClass="text-yellow-500"
                 accentHex="#eab308"
@@ -1743,8 +2030,9 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="Waiting / Lines / Traffic"
-                subtitle="Transit delays, queues, hold music"
+                indexCode="II.07"
+                label="Queues, Delays & Traffic"
+                subtitle="Waiting rooms, transit friction, hold lines"
                 icon={Hourglass}
                 colorClass="text-stone-400"
                 accentHex="#a8a29e"
@@ -1759,8 +2047,9 @@ export default function LifespanApp() {
               />
 
               <SliderControl
+                indexCode="II.08"
                 label="Unexpected Disasters"
-                subtitle="Car breakdowns, home leaks, IT crashes"
+                subtitle="Breakdowns, home repairs, acute crises"
                 icon={AlertTriangle}
                 colorClass="text-orange-500"
                 accentHex="#f97316"
@@ -1771,13 +2060,15 @@ export default function LifespanApp() {
                 step={5}
                 unit="hrs/yr"
                 hours={sim.totals.disaster}
+                benchmark={ATUS_BENCHMARKS.disaster}
               />
 
               <SliderControl
+                indexCode="II.09"
                 label="Major Life Detours"
-                subtitle="Years lost to crisis/burnout (waking hrs)"
+                subtitle="Years lost to severe crisis (waking hrs)"
                 icon={RouteOff}
-                colorClass="text-red-800"
+                colorClass="text-red-700"
                 accentHex="#991b1b"
                 value={state.detourYearsRemaining}
                 onChange={(v) => updateField('detourYearsRemaining', v)}
@@ -1790,21 +2081,22 @@ export default function LifespanApp() {
             </div>
           </section>
 
-          {/* SECTION 03: THE CHOICE */}
+          {/* SECTION III: THE CHOICE (EXACT 1x3 = 3 ELEVATED INSTRUMENT CARDS) */}
           <section>
-            <div className="mb-6 border-b border-gray-800 pb-2">
-              <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                <span className="text-gray-600">03.</span> The Choice (Intentional Living)
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Time deliberately invested in health, mastery, and joy. Exercise also directly extends your actuarial healthspan.
-              </p>
-            </div>
+            <AxialSectionHeader
+              roman="III"
+              title="The Choice"
+              subtitle="Deliberate investments in vitality, mastery, and communion. Physical training directly expands your actuarial healthspan."
+              accentColor="#10b981"
+              totalHours={choiceHours}
+              wakingPct={((choiceHours / wakingHoursRemaining) * 100).toFixed(1)}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <SliderControl
-                label="Physical Fitness & Sport"
-                subtitle="Extends both lifespan & healthy years"
+                indexCode="III.01"
+                label="Physical Vitality & Sport"
+                subtitle="Compounds both total lifespan & healthspan"
                 icon={Activity}
                 colorClass="text-emerald-400"
                 accentHex="#10b981"
@@ -1819,8 +2111,9 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="Self-Improvement & Craft"
-                subtitle="Reading, deep learning, creative building"
+                indexCode="III.02"
+                label="Mastery & Deep Craft"
+                subtitle="Literature, study, creation, contemplation"
                 icon={BookOpen}
                 colorClass="text-emerald-500"
                 accentHex="#059669"
@@ -1835,8 +2128,9 @@ export default function LifespanApp() {
               />
 
               <SliderControl
-                label="True Leisure & Connection"
-                subtitle="Loved ones, play, travel, deep rest"
+                indexCode="III.03"
+                label="True Leisure & Communion"
+                subtitle="Loved ones, art, presence, adventure"
                 icon={Smile}
                 colorClass="text-cyan-400"
                 accentHex="#06b6d4"
@@ -1852,15 +2146,69 @@ export default function LifespanApp() {
             </div>
           </section>
         </div>
+
+        {/* Ceremonial Architectural Colophon Footer */}
+        <footer className="pt-8 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono text-zinc-600 uppercase tracking-[0.2em]">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rotate-45 bg-red-600" />
+            <span>THE FINITE CANVAS // ARCHITECTURAL MEMENTO MORI</span>
+          </div>
+          <div>
+            365.2425 DAYS/YR · 8,765.82 HRS/YR · SSA &amp; ATUS CALIBRATED
+          </div>
+        </footer>
       </div>
 
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #404040; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #090a0f; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #27272a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        input.angular-slider {
+          -webkit-appearance: none;
+          appearance: none;
+          background: transparent;
+          height: 20px;
+        }
+        input.angular-slider:focus {
+          outline: none;
+        }
+        input.angular-slider::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 4px;
+          cursor: pointer;
+          background: transparent;
+        }
+        input.angular-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          height: 12px;
+          width: 12px;
+          background: #090a0f;
+          border: 2px solid currentColor;
+          transform: rotate(45deg);
+          cursor: pointer;
+          margin-top: -4px;
+          box-shadow: 0 0 10px currentColor;
+          transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input.angular-slider::-webkit-slider-thumb:hover {
+          background: currentColor;
+          transform: rotate(45deg) scale(1.2);
+        }
+        input.angular-slider::-moz-range-thumb {
+          height: 12px;
+          width: 12px;
+          background: #090a0f;
+          border: 2px solid currentColor;
+          border-radius: 0;
+          transform: rotate(45deg);
+          cursor: pointer;
+          box-shadow: 0 0 10px currentColor;
+        }
       `,
         }}
       />
